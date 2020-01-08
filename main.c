@@ -118,7 +118,7 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 
-	char Tekst_Temp0[] = "Temperatuur!!:\r\n";
+	char Tekst_Temp0[] = "Temperatuur:\r\n";
 	char Tekst_Hum0[] = "Luchtvochtigheid:\r\n";
 	uint8_t REFdebounce = 50; //Debounce counter
 	uint8_t In1_0 = 0; //first Debounce check pin 1
