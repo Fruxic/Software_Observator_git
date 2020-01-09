@@ -214,17 +214,18 @@ void SysTick_Handler(void)
 void EXTI1_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI1_IRQn 0 */
-	  if(__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_1) != RESET)
+	  static int t = 0;
+	  if(__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_1) != RESET && t == 0)
 	  {
 		  HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 		  HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
 		  int HuidigSec = sTime.Seconds;
 		  static int VorigSec = 0;
 		  static int b = 0;
+		  static int Calc[10];
 		  int x = 0;
-		  long Calc[10];
 		  int Sum = 0;
-		  int Avg = 0;
+		  float Avg = 0;
 		  char Tekst[] = "Regen:\r\n";
 		  char Tekst1[] = "mm/h\r\n\r\n";
 
@@ -239,8 +240,11 @@ void EXTI1_IRQHandler(void)
 
 		  VorigSec = HuidigSec;
 
-		  Calc[b] = (3600/x) * 0.1;
-		  b++;
+		  if(x >= 1)
+		  {
+			  Calc[b] = (3600/x) * 0.1;
+			  b++;
+		  }
 
 		  if(b == 10)
 		  {
@@ -252,26 +256,16 @@ void EXTI1_IRQHandler(void)
 			  Avg = Sum/10;
 			  char DataH[3];
 			  itoa(Avg, DataH, 10);
-			  /*if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
-			  {
-				  GPIOC -> ODR ^= GPIO_PIN_10;
-				  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
-				  f_write(&myFile, &Tekst, sizeof(Tekst), &testByte);
-				  f_close(&myFile);
-
-				  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
-				  f_write(&myFile, &DataH, sizeof(DataH), &testByte);
-				  f_close(&myFile);
-
-				  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
-				  f_write(&myFile, &Tekst1, sizeof(Tekst1), &testByte);
-				  f_close(&myFile);
-			  }*/
 		  }
 
 	      GPIOC -> ODR ^= GPIO_PIN_11;
-	      for(uint32_t i = 0; i<=10000; i++);
-		  __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_1);
+	      for(uint32_t i = 0; i<=100000; i++);
+	  }
+
+	  t++;
+	  if(t == 2)
+	  {
+		  t = 0;
 	  }
   /* USER CODE END EXTI1_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_1);
