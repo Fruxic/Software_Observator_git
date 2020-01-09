@@ -23,16 +23,24 @@
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "fatfs.h"
+#include "sdio.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
-
+RTC_TimeTypeDef sTime;
+RTC_DateTypeDef sDate;
+RTC_HandleTypeDef hrtc;
+FIL myFile;
+SD_HandleTypeDef hsd;
+FATFS myFATFS;
+UINT testByte;
 /* USER CODE END TD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
- 
+char FileName[] = "Measure.txt";//Bestands naam voor externe sensor
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -206,17 +214,63 @@ void SysTick_Handler(void)
 void EXTI1_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI1_IRQn 0 */
-	  if(__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_1) != SET)
+	  if(__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_1) != RESET)
 	  {
 		  HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 		  HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
-		  int s = sTime.Seconds;
-		  int m = sTime.Minutes;
-		  int y;
+		  int HuidigSec = sTime.Seconds;
+		  static int VorigSec = 0;
+		  static int b = 0;
+		  int x = 0;
+		  long Calc[10];
+		  int Sum = 0;
+		  int Avg = 0;
+		  char Tekst[] = "Regen:\r\n";
+		  char Tekst1[] = "mm/h\r\n\r\n";
 
+		  if(VorigSec < HuidigSec)
+		  {
+			  x = HuidigSec - VorigSec;
+		  }
+		  else if(VorigSec > HuidigSec)
+		  {
+			  x = (HuidigSec + 60) - VorigSec;
+		  }
+
+		  VorigSec = HuidigSec;
+
+		  Calc[b] = (3600/x) * 0.1;
+		  b++;
+
+		  if(b == 10)
+		  {
+			  b = 0;
+			  for(int i = 0; i <= 9; i++)
+			  {
+				  Sum += Calc[i];
+			  }
+			  Avg = Sum/10;
+			  char DataH[3];
+			  itoa(Avg, DataH, 10);
+			  /*if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
+			  {
+				  GPIOC -> ODR ^= GPIO_PIN_10;
+				  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
+				  f_write(&myFile, &Tekst, sizeof(Tekst), &testByte);
+				  f_close(&myFile);
+
+				  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
+				  f_write(&myFile, &DataH, sizeof(DataH), &testByte);
+				  f_close(&myFile);
+
+				  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
+				  f_write(&myFile, &Tekst1, sizeof(Tekst1), &testByte);
+				  f_close(&myFile);
+			  }*/
+		  }
 
 	      GPIOC -> ODR ^= GPIO_PIN_11;
-	      for(uint32_t i = 0; i<=100000; i++);
+	      for(uint32_t i = 0; i<=10000; i++);
 		  __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_1);
 	  }
   /* USER CODE END EXTI1_IRQn 0 */
