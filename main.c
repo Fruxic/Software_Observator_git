@@ -118,7 +118,6 @@ void Configure_PB2(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
 	char Tekst_Temp0[] = "Temperatuur:\r\n";
 	char Tekst_Hum0[] = "Luchtvochtigheid:\r\n";
 	uint8_t REFdebounce = 50; //Debounce counter
@@ -1103,26 +1102,24 @@ void SaveSDi(char FileName[])
 
 		  HAL_LIN_SendBreak(&huart1);
 		  HAL_Delay(21);
-		  WriteSDi("0M1!", 4);
-		  HAL_Delay(5);
+		  WriteSDi("0M!", 100);
 
 		  GPIOB -> ODR &= ~GPIO_PIN_10;
 
 		  EmptyBuffer();
-		  ReadSDi(10);
+		  ReadSDi(100);
 		  WriteRS(1, rxData);
 
 		  GPIOB -> ODR |= GPIO_PIN_10;
 
 		  HAL_LIN_SendBreak(&huart1);
 		  HAL_Delay(21);
-		  WriteSDi("aD0!", 4);
-		  HAL_Delay(5);
+		  WriteSDi("0D0!", 100);
 
 		  GPIOB -> ODR &= ~GPIO_PIN_10;
 
 		  EmptyBuffer();
-		  ReadSDi(10);
+		  ReadSDi(500);
 		  WriteRS(1, rxData);
 
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
