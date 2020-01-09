@@ -206,10 +206,10 @@ void SysTick_Handler(void)
 void EXTI1_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI1_IRQn 0 */
-	  if(__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_1) != RESET)
+	  if(__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_1) != SET)
 	  {
 	      GPIOC -> ODR ^= GPIO_PIN_11;
-	      for(uint32_t i = 0; i<=100000; i++);
+	      for(uint32_t i = 0; i<=200000; i++);
 		  __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_1);
 	  }
   /* USER CODE END EXTI1_IRQn 0 */
@@ -229,7 +229,7 @@ void EXTI2_IRQHandler(void)
 	  if(__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_2) != RESET)
 	  {
 	      GPIOC -> ODR ^= GPIO_PIN_10;
-	      for(uint32_t i = 0; i<=100000; i++);
+	      for(uint32_t i = 0; i<=200000; i++);
 		  __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_2);
 	  }
   /* USER CODE END EXTI2_IRQn 0 */

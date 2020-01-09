@@ -118,12 +118,8 @@ void Configure_PB2(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	char Tekst_Temp0[] = "Temperatuur:\r\n";
-	char Tekst_Hum0[] = "Luchtvochtigheid:\r\n";
-	uint8_t REFdebounce = 50; //Debounce counter
-	uint8_t In1_0 = 0; //first Debounce check pin 1
-	uint8_t In1_1 = 0; //second debounce check pin 1
-	uint8_t StatoIn1 = 0; //Debounce state pin 1
+    char Tekst_Temp0[] = "PT12:\r\n";
+	char Tekst_Hum0[] = "OMC-160-3:\r\n";
 	uint8_t RS232 = 1;
 	uint8_t Timer2 = 0; //local Timer
 	uint8_t RS_Poort; //variable voor keuze RS protocol
@@ -530,9 +526,9 @@ uint8_t RS_Sensor_Func(void)
 	  uint8_t Sensor_RS = 0;
 	  WriteRS(1, "Welke Sensor wilt u lezen?\r\n");
 	  HAL_Delay(200);
-	  WriteRS(1, "type '1' voor Temperatuur\r\n");
+	  WriteRS(1, "type '1' voor PT12\r\n");
 	  HAL_Delay(200);
-	  WriteRS(1, "type '2' voor Luchtvochtigheid\r\n");
+	  WriteRS(1, "type '2' voor OMC-160-3\r\n");
 	  do
 	  {
 		  EmptyBuffer();
@@ -584,9 +580,9 @@ uint8_t SDi_Sensor_Func(void)
 	  uint8_t Sensor_SDi = 0;
 	  WriteRS(1, "Welke Sensor wilt u lezen?\r\n");
 	  HAL_Delay(200);
-	  WriteRS(1, "type '1' voor Temperatuur\r\n");
+	  WriteRS(1, "type '1' voor PT12\r\n");
 	  HAL_Delay(200);
-	  WriteRS(1, "type '2' voor Luchtvochtigheid\r\n");
+	  WriteRS(1, "type '2' voor OMC-160-3\r\n");
 	  do
 	  {
 		  EmptyBuffer();
@@ -883,12 +879,14 @@ void TogglePower(int side, int Toggle)
 uint8_t MeasureRH(void)
 {
 	 unsigned char buffer[5];
+	 ToggleRGB('G', 1);
 	 uint8_t MRH = 0xE5;
 	 HAL_I2C_Master_Transmit(&hi2c1, 0x40<<1, &MRH, 1, 100);
 	 HAL_Delay(5);
 	 HAL_I2C_Master_Receive(&hi2c1, 0x40<<1, buffer, 2, 100);
 	 uint16_t rawH = buffer[0]<<8 | buffer[1];
 	 uint8_t rv = (float)((125*rawH/65536)-6);
+	 ToggleRGB('G', 0);
 	 return rv;
 }
 
@@ -899,7 +897,6 @@ void SaveRH(char FileName[])
 		  char Tekst[] = "Interne RH:";
 		  char Tekst1[] = "%\r\n";
 
-		  ToggleRGB('G', 1);
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst, sizeof(Tekst), &testByte);
 		  f_close(&myFile);
@@ -908,6 +905,7 @@ void SaveRH(char FileName[])
 		  uint8_t h = MeasureRH();
 		  char Data[2];
 		  itoa(h, Data, 10);
+		  ToggleRGB('R', 1);
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Data, sizeof(Data), &testByte);
 		  f_close(&myFile);
@@ -917,7 +915,7 @@ void SaveRH(char FileName[])
 		  f_write(&myFile, &Tekst1, sizeof(Tekst1), &testByte);
 		  f_close(&myFile);
 		  HAL_Delay(5);
-		  ToggleRGB('G', 0);
+		  ToggleRGB('R', 0);
 	  }
 }
 
@@ -931,7 +929,6 @@ void SaveT(char FileName[])
 		  char Tekst3[] = "\r\n";
 		  char Tekst4[] = ":";
 
-		  ToggleRGB('R', 1);
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst, sizeof(Tekst), &testByte);
 		  f_close(&myFile);
@@ -940,6 +937,7 @@ void SaveT(char FileName[])
 		  uint8_t t = MeasureT();
 		  char Data[2];
 		  itoa(t, Data, 10);
+		  ToggleRGB('R', 1);
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Data, sizeof(Data), &testByte);
 		  f_close(&myFile);
@@ -1006,6 +1004,8 @@ void SaveRS(char FileName[], uint8_t RS)
 	  char Tekst3[] = "\r\n";
 	  char Tekst4[] = ":";
 
+	  ToggleRGB('G', 1);
+
 	  do
 	  {
 		  EmptyBuffer();
@@ -1029,9 +1029,11 @@ void SaveRS(char FileName[], uint8_t RS)
 	  HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 	  HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
 
+	  ToggleRGB('G', 0);
+
 	  if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
 	  {
-		  ToggleRGB('B', 1);
+		  ToggleRGB('R', 1);
 		  //Import meusurement in SD card
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &rxData, sizeof(rxData), &testByte);
@@ -1084,7 +1086,7 @@ void SaveRS(char FileName[], uint8_t RS)
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
 		  f_close(&myFile);
-		  ToggleRGB('B', 0);
+		  ToggleRGB('R', 0);
 	  }
 }
 
@@ -1101,8 +1103,8 @@ void SaveSDi(char FileName[])
 		  GPIOB -> ODR |= GPIO_PIN_10;
 
 		  HAL_LIN_SendBreak(&huart1);
-		  HAL_Delay(21);
-		  WriteSDi("0M!", 100);
+		  HAL_Delay(20);
+		  WriteSDi("0M1!", 200);
 
 		  GPIOB -> ODR &= ~GPIO_PIN_10;
 
@@ -1112,25 +1114,32 @@ void SaveSDi(char FileName[])
 
 		  GPIOB -> ODR |= GPIO_PIN_10;
 
+		  HAL_Delay(1700);
 		  HAL_LIN_SendBreak(&huart1);
-		  HAL_Delay(21);
+		  HAL_Delay(20);
 		  WriteSDi("0D0!", 100);
 
 		  GPIOB -> ODR &= ~GPIO_PIN_10;
 
 		  EmptyBuffer();
-		  ReadSDi(500);
+		  ReadSDi(300);
 		  WriteRS(1, rxData);
 
+		  HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+		  HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+
+		  ToggleRGB('G', 0);
+
+		  ToggleRGB('R', 0);
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &rxData, sizeof(rxData), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(10);
+		  HAL_Delay(2);
 
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst2, sizeof(Tekst2), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(10);
+		  HAL_Delay(2);
 
 		  uint8_t h = sTime.Hours;
 		  char DataH[2];
@@ -1138,12 +1147,12 @@ void SaveSDi(char FileName[])
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &DataH, sizeof(DataH), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(10);
+		  HAL_Delay(2);
 
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(10);
+		  HAL_Delay(2);
 
 		  uint8_t m = sTime.Minutes;
 		  char DataM[2];
@@ -1151,12 +1160,12 @@ void SaveSDi(char FileName[])
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &DataM, sizeof(DataM), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(10);
+		  HAL_Delay(2);
 
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(10);
+		  HAL_Delay(2);
 
 		  uint8_t s = sTime.Seconds;
 		  char DataS[2];
@@ -1164,7 +1173,7 @@ void SaveSDi(char FileName[])
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &DataS, sizeof(DataS), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(10);
+		  HAL_Delay(2);
 
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
@@ -1173,19 +1182,21 @@ void SaveSDi(char FileName[])
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
 		  f_close(&myFile);
-		  ToggleRGB('G', 0);
+		  ToggleRGB('R', 0);
 	  }
 }
 
 uint8_t MeasureT(void)
 {
 	 unsigned char buffer[5];
+	 ToggleRGB('G', 1);
 	 uint8_t MT = 0xE0;
 	 HAL_I2C_Master_Transmit(&hi2c1, 0x40<<1, &MT, 1, 100);
 	 HAL_Delay(20);
 	 HAL_I2C_Master_Receive(&hi2c1, 0x40<<1, buffer, 2, 100);
 	 uint16_t rawT = buffer[0]<<8 | buffer[1];
 	 uint8_t r = (float)((175.72*rawT/65536)-46.85);
+	 ToggleRGB('G', 0);
 	 return r;
 }
 
@@ -1196,7 +1207,6 @@ void CreateFile(char FileName[])
 		  f_open(&myFile, FileName, FA_CREATE_NEW);
 		  f_close(&myFile);
 	  }
-	  f_mount(0, SDPath, 1);
 }
 
 void CreateFileNew(char FileName[])
@@ -1206,7 +1216,6 @@ void CreateFileNew(char FileName[])
 		  f_open(&myFile, FileName, FA_CREATE_ALWAYS);
 		  f_close(&myFile);
 	  }
-	  f_mount(0, SDPath, 1);
 }
 
 void ReadRS(uint8_t RS, uint8_t port, uint16_t TimeOut)
