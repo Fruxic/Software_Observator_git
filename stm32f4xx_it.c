@@ -208,6 +208,13 @@ void EXTI1_IRQHandler(void)
   /* USER CODE BEGIN EXTI1_IRQn 0 */
 	  if(__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_1) != SET)
 	  {
+		  HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+		  HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+		  int s = sTime.Seconds;
+		  int m = sTime.Minutes;
+		  int y;
+
+
 	      GPIOC -> ODR ^= GPIO_PIN_11;
 	      for(uint32_t i = 0; i<=100000; i++);
 		  __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_1);
