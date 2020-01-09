@@ -1018,7 +1018,7 @@ void SaveRS(char FileName[], uint8_t RS)
 		  {
 			  for(int y = x; y <= 39; y++)
 			  {
-				  rxData[y] = 0;
+				  rxData[y] = 127;
 			  }
 			  break;
 		  }
@@ -1130,7 +1130,7 @@ void SaveSDi(char FileName[])
 
 		  ToggleRGB('G', 0);
 
-		  ToggleRGB('R', 0);
+		  ToggleRGB('R', 1);
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &rxData, sizeof(rxData), &testByte);
 		  f_close(&myFile);
