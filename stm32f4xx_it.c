@@ -208,7 +208,7 @@ void EXTI1_IRQHandler(void)
   /* USER CODE BEGIN EXTI1_IRQn 0 */
 	  if(__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_1) != RESET)
 	  {
-	      GPIOC -> ODR ^= GPIO_PIN_10;
+	      GPIOC -> ODR ^= GPIO_PIN_11;
 	      for(uint32_t i = 0; i<=100000; i++);
 		  __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_1);
 	  }
