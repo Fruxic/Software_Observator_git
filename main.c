@@ -103,6 +103,7 @@ void Create_File_Func(void);
 void EmptyBuffer(void);
 void SetTime(void);
 void RemountSD(void);
+void Configure_PB2(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -325,7 +326,7 @@ int main(void)
 
 	  EmptyBuffer();
 
-	  if((GPIOB -> IDR & GPIO_PIN_1) == 2)
+	  /*if((GPIOB -> IDR & GPIO_PIN_1) == 2)
 	  {
 		  In1_0++;
 		  In1_1 = 0;
@@ -348,7 +349,7 @@ int main(void)
 	  if(StatoIn1 == 1)
 	  {
 		  GPIOC -> ODR ^= GPIO_PIN_10;
-	  }
+	  }*/
 
   }
   /* USER CODE END 3 */
@@ -1616,7 +1617,9 @@ void RemountSD(void)
 		  MX_FATFS_Init();
 	  }
 }
+
 /* USER CODE END 4 */
+
 /**
   * @brief  This function is executed in case of error occurrence.
   * @retval None
