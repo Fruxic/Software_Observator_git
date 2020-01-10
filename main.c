@@ -420,36 +420,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   Timer++;
 }
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-  /* Prevent unused argument(s) compilation warning */
-  UNUSED(GPIO_Pin);
-  /* NOTE: This function Should not be modified, when the callback is needed,
-           the HAL_GPIO_EXTI_Callback could be implemented in the user file
-   */
-  static int State = 1;
-  static int Reading;
-  static int Previous = 0;
-
-  Reading++;
-
-  if(Reading == 1 && Previous == 0)
-  {
-	  if(State == 1)
-	  {
-		  State = 0;
-		  GPIOC -> ODR ^= GPIO_PIN_10;
-		  Reading = 0;
-	  }
-	  else
-	  {
-		  State = 1;
-		  Reading = 0;
-	  }
-  }
-  for(uint32_t i = 0; i<=100000; i++);
-}
-
 void MeasureLogInternal(void)
 {
 	  HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
@@ -962,7 +932,6 @@ void SaveT(char FileName[])
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst, sizeof(Tekst), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(5);
 
 		  uint8_t t = MeasureT();
 		  char Data[2];
@@ -971,17 +940,14 @@ void SaveT(char FileName[])
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Data, sizeof(Data), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(5);
 
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst1, sizeof(Tekst1), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(5);
 
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst2, sizeof(Tekst2), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(5);
 
 		  uint8_t h = sTime.Hours;
 		  char DataH[2];
@@ -989,12 +955,10 @@ void SaveT(char FileName[])
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &DataH, sizeof(DataH), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(5);
 
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(5);
 
 		  uint8_t m = sTime.Minutes;
 		  char DataM[2];
@@ -1002,12 +966,10 @@ void SaveT(char FileName[])
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &DataM, sizeof(DataM), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(5);
 
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(5);
 
 		  uint8_t s = sTime.Seconds;
 		  char DataS[2];
@@ -1015,7 +977,6 @@ void SaveT(char FileName[])
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &DataS, sizeof(DataS), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(5);
 
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
@@ -1048,7 +1009,7 @@ void SaveRS(char FileName[], uint8_t RS)
 		  {
 			  for(int y = x; y <= 39; y++)
 			  {
-				  rxData[y] = 127;
+				  rxData[y] = 0;
 			  }
 			  break;
 		  }
@@ -1068,12 +1029,10 @@ void SaveRS(char FileName[], uint8_t RS)
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &rxData, sizeof(rxData), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(5);
 
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst2, sizeof(Tekst2), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(5);
 
 		  uint8_t h = sTime.Hours;
 		  char DataH[2];
@@ -1081,12 +1040,10 @@ void SaveRS(char FileName[], uint8_t RS)
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &DataH, sizeof(DataH), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(5);
 
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(5);
 
 		  uint8_t m = sTime.Minutes;
 		  char DataM[2];
@@ -1094,12 +1051,10 @@ void SaveRS(char FileName[], uint8_t RS)
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &DataM, sizeof(DataM), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(5);
 
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(5);
 
 		  uint8_t s = sTime.Seconds;
 		  char DataS[2];
@@ -1107,7 +1062,6 @@ void SaveRS(char FileName[], uint8_t RS)
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &DataS, sizeof(DataS), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(5);
 
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
@@ -1164,12 +1118,10 @@ void SaveSDi(char FileName[])
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &rxData, sizeof(rxData), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(2);
 
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst2, sizeof(Tekst2), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(2);
 
 		  uint8_t h = sTime.Hours;
 		  char DataH[2];
@@ -1177,12 +1129,10 @@ void SaveSDi(char FileName[])
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &DataH, sizeof(DataH), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(2);
 
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(2);
 
 		  uint8_t m = sTime.Minutes;
 		  char DataM[2];
@@ -1190,12 +1140,10 @@ void SaveSDi(char FileName[])
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &DataM, sizeof(DataM), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(2);
 
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(2);
 
 		  uint8_t s = sTime.Seconds;
 		  char DataS[2];
@@ -1203,7 +1151,6 @@ void SaveSDi(char FileName[])
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &DataS, sizeof(DataS), &testByte);
 		  f_close(&myFile);
-		  HAL_Delay(2);
 
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
