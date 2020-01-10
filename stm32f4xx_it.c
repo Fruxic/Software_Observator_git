@@ -273,6 +273,7 @@ void EXTI1_IRQHandler(void)
 				  itoa(Avg, DataH, 10);
 				  if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
 				  {
+					  GPIOC -> ODR &= ~GPIO_PIN_9;
 					  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 					  f_write(&myFile, &Tekst, sizeof(Tekst), &testByte);
 					  f_close(&myFile);
@@ -321,6 +322,7 @@ void EXTI1_IRQHandler(void)
 					  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 					  f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
 					  f_close(&myFile);
+					  GPIOC -> ODR |= GPIO_PIN_9;
 				  }
 			  }
 			  Reading = 0;

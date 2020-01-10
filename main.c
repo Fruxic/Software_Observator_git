@@ -285,7 +285,6 @@ int main(void)
 				  SaveRS(FileName_Measure, RS_Poort);
 			  }
 		  }
-		  HAL_Delay(10);
 
 		  if(Sensor_SDi == 1 && SDi == 1)
 		  {
