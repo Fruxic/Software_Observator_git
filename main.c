@@ -32,6 +32,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <string.h>
+#include "MY_FLASH.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -103,6 +104,8 @@ void Create_File_Func(void);
 void EmptyBuffer(void);
 void SetTime(void);
 void RemountSD(void);
+void Flash_Write(uint32_t Flash_Address, uint32_t Flash_Data);
+uint32_t Flash_Read(uint32_t Flash_Address);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -119,7 +122,6 @@ int main(void)
   /* USER CODE BEGIN 1 */
     char Tekst_Temp0[] = "PT12:\r\n";
 	char Tekst_Hum0[] = "OMC-160-3:\r\n";
-	uint8_t RS232 = 1;
 	uint8_t Timer2 = 0; //local Timer
 	uint8_t RS_Poort; //variable voor keuze RS protocol
 	uint8_t RS_Choice; //
@@ -127,9 +129,8 @@ int main(void)
 	uint8_t PowerSwitch; //variable voor powerswitch aansluiting (Relay/distributer)
 	uint8_t Sensor_RS = 0; //Variable voor sensor keuze op RS poort.
 	uint8_t Sensor_SDi = 0; //Variable voor sensor keuze op SDi12 poort.
+	uint32_t Data = 0;
   /* USER CODE END 1 */
-  
-
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
@@ -166,6 +167,9 @@ int main(void)
   //De gebruiker moet alle sensoren eerst aansluiten voordat de gebruiker kan configureren.
   Start_Up();
 
+  Flash_Write(0x08010000, 0x03);
+  Data = Flash_Read(0x08010000);
+
   //De RTC configureren en initialiseren
   sDate.Date = 7;
   sDate.Month = RTC_MONTH_JANUARY;
@@ -181,6 +185,7 @@ int main(void)
 
   //Kiezen voor een RS aansluiting
   RS_Choice = RS_Choice_Func();
+
 
   WriteRS(1, "\r\n");
 
@@ -250,8 +255,6 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  EmptyBuffer();
-	  ReadRS(RS232, 1, 1);
-	  ReadRS(RS_Poort, 2, 1);
 	  ToggleRGB('R', 0);
 
 	  if(Timer == 1 && Timer2 == 0) //Internal meusurement
@@ -1410,159 +1413,6 @@ void SetTime(void)
 	  }
 }
 
-/*void SetTime(void)
-{
-      uint8_t RS232 = 1;
-	  char TimerDate[2];
-	  char TimerDay[2];
-	  char TimerMonth[2];
-	  char TimerYear[4];
-	  //Uren instellen
-	  if(TimerHour[0] > 0 || TimerHour[1] > 0)
-	  {
-		  TimerHour[0] = 0;
-		  TimerHour[1] = 0;
-	  }
-
-	  WriteRS(1, "Uur:\t");
-
-	  do
-	  {
-		  do
-		  {
-			  EmptyBuffer();
-			  if(sTime.Hours > 0)
-			  {
-				  break;
-			  }
-			  ReadRS(RS232, 1, 1);
-			  WriteRS(1, rxData);
-			  TimerHour[0] = rxData[0];
-		  }while(rxData[0] < 48 || rxData[0] > 50);
-
-		  do
-		  {
-			  EmptyBuffer();
-			  if(sTime.Hours > 0)
-			  {
-				  break;
-			  }
-			  ReadRS(RS232, 1, 1);
-			  WriteRS(1, rxData);
-			  TimerHour[1] = rxData[0];
-		  }while(rxData[0] < 48 || rxData[0] > 51);
-
-		  sTime.Hours = atoi(TimerHour);
-
-		  ReadRS(RS232, 1, 1);
-
-	  }while(rxData[0] != '\r' || sTime.Hours < 0 || sTime.Hours > 23);
-
-	  if(TimerHour[0] > 0 || TimerHour[1] > 0)
-	  {
-		  TimerHour[0] = 0;
-		  TimerHour[1] = 0;
-	  }
-
-	  WriteRS(1, "\r\n\0");
-
-	  //Minuten instellen
-	  if(TimerMin[0] > 0 || TimerMin[1] > 0)
-	  {
-		  TimerMin[0] = 0;
-		  TimerMin[1] = 0;
-	  }
-
-	  WriteRS(1, "Minuten:\t");
-
-	  do
-	  {
-		  do
-		  {
-			  EmptyBuffer();
-			  if(sTime.Minutes > 0)
-			  {
-				  break;
-			  }
-			  ReadRS(RS232, 1, 1);
-			  WriteRS(1, rxData);
-			  TimerMin[0] = rxData[0];
-		  }while(rxData[0] < 48 || rxData[0] > 53);
-
-		  do
-		  {
-			  EmptyBuffer();
-			  if(sTime.Minutes > 0)
-			  {
-				  break;
-			  }
-			  ReadRS(RS232, 1, 1);
-			  WriteRS(1, rxData);
-			  TimerMin[1] = rxData[0];
-		  }while(rxData[0] < 48 || rxData[0] > 57);
-
-		  sTime.Minutes = atoi(TimerMin);
-
-		  ReadRS(RS232, 1, 1);
-
-	  }while(rxData[0] != '\r' || sTime.Minutes < 0 || sTime.Minutes > 59);
-
-	  if(TimerMin[0] > 0 || TimerMin[1] > 0)
-	  {
-		  TimerMin[0] = 0;
-		  TimerMin[1] = 0;
-	  }
-
-	  WriteRS(1, "\r\n\0");
-
-	  //Seconden instellen
-	  if(TimerSec[0] > 0 || TimerSec[1] > 0)
-	  {
-		  TimerSec[0] = 0;
-		  TimerSec[1] = 0;
-	  }
-
-	  WriteRS(1, "Seconden:\t");
-
-	  do
-	  {
-		  do
-		  {
-			  EmptyBuffer();
-			  if(sTime.Seconds > 0)
-			  {
-				  break;
-			  }
-			  ReadRS(RS232, 1, 1);
-			  WriteRS(1, rxData);
-			  TimerSec[0] = rxData[0];
-		  }while(rxData[0] < 48 || rxData[0] > 53);
-
-		  do
-		  {
-			  EmptyBuffer();
-			  if(sTime.Seconds > 0)
-			  {
-				  break;
-			  }
-			  ReadRS(RS232, 1, 1);
-			  WriteRS(1, rxData);
-			  TimerSec[1] = rxData[0];
-		  }while(rxData[0] < 48 || rxData[0] > 57);
-
-		  sTime.Seconds = atoi(TimerSec);
-
-		  ReadRS(RS232, 1, 1);
-
-	  }while(rxData[0] != '\r' || sTime.Seconds < 0 || sTime.Seconds > 59);
-
-	  if(TimerSec[0] > 0 || TimerSec[1] > 0)
-	  {
-		  TimerSec[0] = 0;
-		  TimerSec[1] = 0;
-	  }
-}*/
-
 void RemountSD(void)
 {
 	  if(f_mount(&myFATFS, SDPath, 1) != FR_OK)
@@ -1571,6 +1421,23 @@ void RemountSD(void)
 		  HAL_Delay(100);
 		  MX_FATFS_Init();
 	  }
+}
+
+void Flash_Write(uint32_t Flash_Address, uint32_t Flash_Data)
+{
+	HAL_FLASH_Unlock();
+	FLASH_Erase_Sector(FLASH_SECTOR_4, VOLTAGE_RANGE_3);
+	HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, Flash_Address, Flash_Data);
+	HAL_FLASH_Lock();
+}
+
+uint32_t Flash_Read(uint32_t Flash_Address)
+{
+	uint32_t Flash_Data;
+
+	Flash_Data = *(uint32_t*) Flash_Address;
+
+	return Flash_Data;
 }
 
 /* USER CODE END 4 */
