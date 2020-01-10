@@ -103,7 +103,6 @@ void Create_File_Func(void);
 void EmptyBuffer(void);
 void SetTime(void);
 void RemountSD(void);
-void Configure_PB2(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -320,32 +319,6 @@ int main(void)
 	  }
 
 	  EmptyBuffer();
-
-	  /*if((GPIOB -> IDR & GPIO_PIN_1) == 2)
-	  {
-		  In1_0++;
-		  In1_1 = 0;
-		  if(In1_0 >= REFdebounce)
-		  {
-			  In1_0 = REFdebounce + 1;
-			  StatoIn1 = 0;
-		  }
-	  }
-	  else if((GPIOB -> IDR & GPIO_PIN_1) == 0)
-	  {
-		  In1_0 = 0;
-		  In1_1++;
-		  if(In1_1 >= REFdebounce)
-		  {
-			  In1_1 = REFdebounce + 1;
-			  StatoIn1 = 1;
-		  }
-	  }
-	  if(StatoIn1 == 1)
-	  {
-		  GPIOC -> ODR ^= GPIO_PIN_10;
-	  }*/
-
   }
   /* USER CODE END 3 */
 }
