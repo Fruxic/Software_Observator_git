@@ -420,6 +420,36 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   Timer++;
 }
 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(GPIO_Pin);
+  /* NOTE: This function Should not be modified, when the callback is needed,
+           the HAL_GPIO_EXTI_Callback could be implemented in the user file
+   */
+  static int State = 1;
+  static int Reading;
+  static int Previous = 0;
+
+  Reading++;
+
+  if(Reading == 1 && Previous == 0)
+  {
+	  if(State == 1)
+	  {
+		  State = 0;
+		  GPIOC -> ODR ^= GPIO_PIN_10;
+		  Reading = 0;
+	  }
+	  else
+	  {
+		  State = 1;
+		  Reading = 0;
+	  }
+  }
+  for(uint32_t i = 0; i<=100000; i++);
+}
+
 void MeasureLogInternal(void)
 {
 	  HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
