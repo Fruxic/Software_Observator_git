@@ -167,9 +167,6 @@ int main(void)
   //De gebruiker moet alle sensoren eerst aansluiten voordat de gebruiker kan configureren.
   Start_Up();
 
-  Flash_Write(0x08010000, 0x03);
-  Data = Flash_Read(0x08010000);
-
   //De RTC configureren en initialiseren
   sDate.Date = 7;
   sDate.Month = RTC_MONTH_JANUARY;
@@ -186,6 +183,8 @@ int main(void)
   //Kiezen voor een RS aansluiting
   RS_Choice = RS_Choice_Func();
 
+  Flash_Write(0x080600e0, RS_Choice);
+  Data = Flash_Read(0x080600e0);
 
   WriteRS(1, "\r\n");
 
@@ -256,16 +255,15 @@ int main(void)
     /* USER CODE BEGIN 3 */
 	  EmptyBuffer();
 	  ToggleRGB('R', 0);
+	  RemountSD();
 
 	  if(Timer == 1 && Timer2 == 0) //Internal meusurement
 	  {
-		  RemountSD();
 		  MeasureLogInternal();
 		  Timer2++;
 	  }
 	  else if(Timer == 2)//external meusurement
 	  {
-		  RemountSD();
 		  if(Sensor_RS == 1 && RS_Choice == 1)
 		  {
 			  if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
@@ -1418,7 +1416,6 @@ void RemountSD(void)
 	  if(f_mount(&myFATFS, SDPath, 1) != FR_OK)
 	  {
 		  MX_FATFS_DeInit();
-		  HAL_Delay(100);
 		  MX_FATFS_Init();
 	  }
 }
@@ -1426,7 +1423,7 @@ void RemountSD(void)
 void Flash_Write(uint32_t Flash_Address, uint32_t Flash_Data)
 {
 	HAL_FLASH_Unlock();
-	FLASH_Erase_Sector(FLASH_SECTOR_4, VOLTAGE_RANGE_3);
+	FLASH_Erase_Sector(FLASH_SECTOR_7, VOLTAGE_RANGE_3);
 	HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, Flash_Address, Flash_Data);
 	HAL_FLASH_Lock();
 }
