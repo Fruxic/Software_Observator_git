@@ -129,8 +129,8 @@ int main(void)
 	uint8_t PowerSwitch; //variable voor powerswitch aansluiting (Relay/distributer)
 	uint8_t Sensor_RS = 0; //Variable voor sensor keuze op RS poort.
 	uint8_t Sensor_SDi = 0; //Variable voor sensor keuze op SDi12 poort.
-	uint32_t Data = 0;
-	uint8_t t = 0;
+	uint32_t Data_RS_Choice = 0;
+	uint32_t Data_SDi = 0;
   /* USER CODE END 1 */
   /* MCU Configuration--------------------------------------------------------*/
 
@@ -165,9 +165,6 @@ int main(void)
 
   HAL_TIM_Base_Start_IT(&htim2);
 
-  WriteRS(1, "\x1b[1J"); //Clear screen
-  WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
-
   //De gebruiker moet alle sensoren eerst aansluiten voordat de gebruiker kan configureren.
   Start_Up();
 
@@ -178,16 +175,20 @@ int main(void)
   sDate.Year = 20;
   HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
 
-  /*WriteRS(1, "Stel de tijd in voor je RTC\r\n");
+  WriteRS(1, "Stel de tijd in voor je RTC\r\n");
   SetTime();
   HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 
   WriteRS(1, "\r\n");
 
   //Kiezen voor een RS aansluiting
-  RS_Choice = RS_Choice_Func();
-
-  WriteRS(1, "\r\n");
+  Data_RS_Choice = Flash_Read(0x080600e0);
+  if(Data_RS_Choice <= 0 || Data_RS_Choice >= 3)
+  {
+	  RS_Choice = RS_Choice_Func();
+	  Flash_Write(0x080600e0, RS_Choice);
+	  WriteRS(1, "\r\n");
+  }
 
   //Kiezen tussen de RS-232, RS-422 en RS-485
   if(RS_Choice == 1)
@@ -200,8 +201,9 @@ int main(void)
   }
 
   //Kiezen voor een SDi12 aansluiting
+  //Data_SDi = Flash_Read(0x08060000);
   SDi = SDi_Poort_Func();
-
+	 //Flash_Write(0x08060000, RS_Choice);
   WriteRS(1, "\r\n");
 
   //Kiezen welke sensor de gebruiker wilt lezen op de SDi12 poort.
@@ -242,8 +244,7 @@ int main(void)
 
   WriteRS(1, "\r\n");
 
-  WriteRS(1, "Programma start\r\n");*/
-
+  WriteRS(1, "Programma start\r\n");
   Timer = 0; //Timer reset.
   LED = 1;
   /* USER CODE END 2 */
@@ -255,44 +256,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  EmptyBuffer();
 	  ToggleRGB('R', 0);
-
-	  if(t == 0 || rxData[0] == 'e')
-	  {
-		  EmptyBuffer();
-		  WriteRS(1, "\x1b[1J"); //Clear screen
-		  WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
-		  WriteRS(1, "|                                         MENU                                           |\r\n");
-		  WriteRS(1, "|(1) Communicatie Poorten                                                                |\r\n");
-		  WriteRS(1, "|(2) Power Switch                                                                        |\r\n");
-		  WriteRS(1, "|(3) RTC                                                                                 |\r\n");
-		  t++;
-	  }
-
-	  ReadRS(1, 1, 5);
-
-	  if(rxData[0] == '1')
-	  {
-		  EmptyBuffer();
-		  WriteRS(1, "\x1b[1J"); //Clear screen
-		  WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
-		  WriteRS(1, "|                                Communicatie Poorten                                    |\r\n");
-		  WriteRS(1, "|(1) SDi-12                                                                              |\r\n");
-		  WriteRS(1, "|(2) Serial coms                                                                         |\r\n");
-		  WriteRS(1, "|(3) Rain Gauge                                                                          |\r\n");
-		  WriteRS(1, "|(e) Back to Menu                                                                        |\r\n");
-	  }
-	  else if(rxData[0] == '2')
-	  {
-		  EmptyBuffer();
-		  WriteRS(1, "\x1b[1J"); //Clear screen
-		  WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
-		  WriteRS(1, "|                                   Power Switches                                       |\r\n");
-		  WriteRS(1, "|(1) Relay                                                                               |\r\n");
-		  WriteRS(1, "|(2) Power Switch                                                                        |\r\n");
-		  WriteRS(1, "|(e) Back to Menu                                                                        |\r\n");
-	  }
-
 	  RemountSD();
 
 	  if(Timer == 1 && Timer2 == 0) //Internal meusurement
@@ -355,6 +320,8 @@ int main(void)
 	  {
 		  Timer = 0;
 	  }
+
+	  EmptyBuffer();
   }
   /* USER CODE END 3 */
 }
