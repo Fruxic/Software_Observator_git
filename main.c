@@ -258,7 +258,7 @@ int main(void)
 	  EmptyBuffer();
 	  ToggleRGB('R', 0);
 
-	  if(t == 0)
+	  if(t == 0 || rxData[0] == 'e')
 	  {
 		  WriteRS(1, "\x1b[1J"); //Clear screen
 		  WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
@@ -279,6 +279,8 @@ int main(void)
 		  WriteRS(1, "|                                Communicatie Poorten                                    |\r\n");
 		  WriteRS(1, "|(1) SDi-12                                                                              |\r\n");
 		  WriteRS(1, "|(2) Serial coms                                                                         |\r\n");
+		  WriteRS(1, "|(3) Rain Gauge                                                                          |\r\n");
+		  WriteRS(1, "|(e) Back to Menu                                                                        |\r\n");
 	  }
 	  else if(rxData[0] == '2')
 	  {
@@ -286,9 +288,9 @@ int main(void)
 		  WriteRS(1, "\x1b[1J"); //Clear screen
 		  WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
 		  WriteRS(1, "|                                   Power Switches                                       |\r\n");
-		  WriteRS(1, "|(1)                                                                               |\r\n");
+		  WriteRS(1, "|(1) Relay                                                                               |\r\n");
 		  WriteRS(1, "|(2) Power Switch                                                                        |\r\n");
-		  WriteRS(1, "|(3) RTC                                                                                 |\r\n");
+		  WriteRS(1, "|(e) Back to Menu                                                                        |\r\n");
 	  }
 	  RemountSD();
 
@@ -352,8 +354,6 @@ int main(void)
 	  {
 		  Timer = 0;
 	  }
-
-	  EmptyBuffer();
   }
   /* USER CODE END 3 */
 }
