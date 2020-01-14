@@ -255,11 +255,11 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  EmptyBuffer();
 	  ToggleRGB('R', 0);
 
 	  if(t == 0 || rxData[0] == 'e')
 	  {
+		  EmptyBuffer();
 		  WriteRS(1, "\x1b[1J"); //Clear screen
 		  WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
 		  WriteRS(1, "|                                         MENU                                           |\r\n");
@@ -292,6 +292,7 @@ int main(void)
 		  WriteRS(1, "|(2) Power Switch                                                                        |\r\n");
 		  WriteRS(1, "|(e) Back to Menu                                                                        |\r\n");
 	  }
+
 	  RemountSD();
 
 	  if(Timer == 1 && Timer2 == 0) //Internal meusurement
