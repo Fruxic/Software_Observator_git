@@ -97,9 +97,9 @@ uint8_t RS_Sensor_Func(void);
 uint8_t SDi_Poort_Func(void);
 uint8_t SDi_Sensor_Func(void);
 uint8_t Switch_12V_Func(void);
-void Poort_12V_Func(void);
+uint8_t Poort_12V_Func(void);
 uint8_t Switch_Relay_Func(void);
-void Poort_Relay_Func(void);
+uint8_t Poort_Relay_Func(void);
 void Create_File_Func(void);
 void EmptyBuffer(void);
 void SetTime(void);
@@ -127,10 +127,15 @@ int main(void)
 	uint8_t RS_Choice; //
 	uint8_t SDi; //Varaible voor keuze SDI poort aansluiting
 	uint8_t PowerSwitch; //variable voor powerswitch aansluiting (Relay/distributer)
+	uint8_t PowerSwitch_12V;
+	uint8_t PowerSwitch_Relay;
+	uint8_t Switch_12V;
+	uint8_t Switch_Relay;
 	uint8_t Sensor_RS = 0; //Variable voor sensor keuze op RS poort.
 	uint8_t Sensor_SDi = 0; //Variable voor sensor keuze op SDi12 poort.
-	uint32_t Data_RS_Choice = 0;
-	uint32_t Data_SDi = 0;
+	uint8_t Seconds = 0;
+	uint8_t Minutes = 0;
+	uint8_t Hours = 0;
   /* USER CODE END 1 */
   /* MCU Configuration--------------------------------------------------------*/
 
@@ -169,74 +174,145 @@ int main(void)
   Start_Up();
 
   //De RTC configureren en initialiseren
-  sDate.Date = 7;
-  sDate.Month = RTC_MONTH_JANUARY;
-  sDate.WeekDay = RTC_WEEKDAY_TUESDAY;
-  sDate.Year = 20;
-  HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
 
-  WriteRS(1, "Stel de tijd in voor je RTC\r\n");
-  SetTime();
-  HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+  HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+  if(sDate.Date <= 0)
+  {
+	  sDate.Date = 7;
+	  sDate.Month = RTC_MONTH_JANUARY;
+	  sDate.WeekDay = RTC_WEEKDAY_TUESDAY;
+	  sDate.Year = 20;
+	  HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+  }
 
-  WriteRS(1, "\r\n");
+  sTime.Hours = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR0);
+  sTime.Minutes = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1);
+  sTime.Seconds = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR2);
+
+  if(sTime.Hours == 0 && sTime.Minutes == 0 && sTime.Seconds == 0)
+  {
+	  WriteRS(1, "Stel de tijd in voor je RTC\r\n");
+	  SetTime();
+	  HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+      HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR0, sTime.Hours);
+      HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, sTime.Minutes);
+      HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR2, sTime.Seconds);
+	  WriteRS(1, "\r\n");
+  }
 
   //Kiezen voor een RS aansluiting
-  Data_RS_Choice = Flash_Read(0x080600e0);
-  if(Data_RS_Choice <= 0 || Data_RS_Choice >= 3)
+  RS_Choice = Flash_Read(0x08060000);
+  if(RS_Choice <= 0 || RS_Choice >= 3)
   {
 	  RS_Choice = RS_Choice_Func();
-	  Flash_Write(0x080600e0, RS_Choice);
+	  Flash_Write(0x08060000, RS_Choice);
 	  WriteRS(1, "\r\n");
+	  //Kiezen tussen de RS-232, RS-422 en RS-485
+	  if(RS_Choice == 1)
+	  {
+		  RS_Poort = RS_Poort_Func();
+		  Flash_Write(0x08060010, RS_Poort);
+		  WriteRS(1, "\r\n");
+		  //Kiezen welke sensor de gebruiker wilt lezen op de gekozen RS poort.
+		  Sensor_RS = RS_Sensor_Func();
+		  Flash_Write(0x08060020, Sensor_RS);
+		  WriteRS(1, "\r\n");
+	  }
   }
+  RS_Poort = Flash_Read(0x08060010);
+  Sensor_RS = Flash_Read(0x08060020);
 
-  //Kiezen tussen de RS-232, RS-422 en RS-485
-  if(RS_Choice == 1)
-  {
-	  RS_Poort = RS_Poort_Func();
-	  WriteRS(1, "\r\n");
-	  //Kiezen welke sensor de gebruiker wilt lezen op de gekozen RS poort.
-	  Sensor_RS = RS_Sensor_Func();
-	  WriteRS(1, "\r\n");
-  }
 
   //Kiezen voor een SDi12 aansluiting
-  //Data_SDi = Flash_Read(0x08060000);
-  SDi = SDi_Poort_Func();
-	 //Flash_Write(0x08060000, RS_Choice);
-  WriteRS(1, "\r\n");
-
-  //Kiezen welke sensor de gebruiker wilt lezen op de SDi12 poort.
-  if(SDi == 1)
+  SDi = Flash_Read(0x08060030);
+  if(SDi <= 0 || SDi >= 3)
   {
-	  Sensor_SDi = SDi_Sensor_Func();
-	  WriteRS(1, "\r\n");
+  	 SDi = SDi_Poort_Func();
+	 Flash_Write(0x08060030, SDi);
+	 WriteRS(1, "\r\n");
+	 //Kiezen welke sensor de gebruiker wilt lezen op de SDi12 poort.
+	 if(SDi == 1)
+	 {
+		 Sensor_SDi = SDi_Sensor_Func();
+		 Flash_Write(0x08060040, Sensor_SDi);
+		 WriteRS(1, "\r\n");
+	 }
   }
+  Sensor_SDi = Flash_Read(0x08060040);
 
   //Kiezen of de gebruiker een voeding nodig heeft voor zijn sensor
-  PowerSwitch = Switch_12V_Func();
-
-  WriteRS(1, "\r\n");
-
-  //Kiezen op welke poort deze sensor zit aangesloten
-  if(PowerSwitch == 1)
+  PowerSwitch_12V = Flash_Read(0x08060050);
+  if(PowerSwitch_12V <= 0 || PowerSwitch_12V >= 3)
   {
-	  Poort_12V_Func();
-	  PowerSwitch = 0;
+	  PowerSwitch_12V = Switch_12V_Func();
+	  Flash_Write(0x08060050, PowerSwitch_12V);
 	  WriteRS(1, "\r\n");
+  }
+  //Kiezen op welke poort deze sensor zit aangesloten
+  Switch_12V = Flash_Read(0x080600a0);
+  if(PowerSwitch_12V == 1)
+  {
+	  if(Switch_12V <= 0 || Switch_12V >= 4)
+	  {
+		  Switch_12V = Poort_12V_Func();
+		  Flash_Write(0x080600a0, Switch_12V);
+		  PowerSwitch = 0;
+		  WriteRS(1, "\r\n");
+	  }
+	  if(Switch_12V == 1)
+	  {
+		  GPIOA -> ODR |= GPIO_PIN_1;
+	  }
+	  else if(Switch_12V == 2)
+	  {
+		  GPIOA -> ODR |= GPIO_PIN_0;
+	  }
+	  else if(Switch_12V == 3)
+	  {
+		  GPIOA -> ODR |= GPIO_PIN_1;
+		  GPIOA -> ODR |= GPIO_PIN_0;
+	  }
   }
 
   //Kiezen of de gebruiker een sensor wilt togglen
-  PowerSwitch = Switch_Relay_Func();
-
-  WriteRS(1, "\r\n");
-
-  //Kiezen op welke poort de sensor zit aangesloten om te togglen
-  if(PowerSwitch == 1)
+  PowerSwitch_Relay = Flash_Read(0x08060060);
+  if(PowerSwitch_Relay <= 0 || PowerSwitch_Relay >= 3)
   {
-      Poort_Relay_Func();
-	  PowerSwitch = 0;
+	  PowerSwitch_Relay = Switch_Relay_Func();
+	  Flash_Write(0x08060060, PowerSwitch_Relay);
 	  WriteRS(1, "\r\n");
+  }
+  //Kiezen op welke poort de sensor zit aangesloten om te togglen
+  Switch_Relay = Flash_Read(0x080600b0);
+  if(PowerSwitch_Relay == 1)
+  {
+	  if(Switch_Relay <= 0 || Switch_Relay >= 4)
+	  {
+		  Switch_Relay = Poort_Relay_Func();
+		  Flash_Write(0x080600b0, Switch_Relay);
+		  PowerSwitch = 0;
+		  WriteRS(1, "\r\n");
+	  }
+	  else if(Switch_Relay == 1)
+	  {
+		  GPIOC -> ODR |= GPIO_PIN_1;
+		  HAL_Delay(5);
+		  GPIOC -> ODR &= ~GPIO_PIN_1;
+	  }
+	  else if(Switch_Relay == 2)
+	  {
+		  GPIOC -> ODR |= GPIO_PIN_0;
+		  HAL_Delay(5);
+		  GPIOC -> ODR &= ~GPIO_PIN_0;
+	  }
+	  else if(Switch_Relay == 3)
+	  {
+		  GPIOC -> ODR |= GPIO_PIN_1;
+		  GPIOC -> ODR |= GPIO_PIN_0;
+		  HAL_Delay(5);
+		  GPIOC -> ODR &= ~GPIO_PIN_1;
+		  GPIOC -> ODR &= ~GPIO_PIN_0;
+	  }
   }
 
   //Bestand aanmaken
@@ -262,11 +338,13 @@ int main(void)
 
 	  if(Timer == 1 && Timer2 == 0) //Internal meusurement
 	  {
+		  RemountSD();
 		  MeasureLogInternal();
 		  Timer2++;
 	  }
 	  else if(Timer == 2)//external meusurement
 	  {
+		  RemountSD();
 		  if(Sensor_RS == 1 && RS_Choice == 1)
 		  {
 			  if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
@@ -400,6 +478,9 @@ void MeasureLogInternal(void)
 {
 	  HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 	  HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+      HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR0, sTime.Hours);
+      HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, sTime.Minutes);
+      HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR2, sTime.Seconds);
 	  SaveRH(FileName_Internal);
 	  HAL_Delay(10);
 	  SaveT(FileName_Internal);
@@ -431,7 +512,13 @@ void Start_Up(void)
 	  {
 		  EmptyBuffer();
 		  ReadRS(RS232, 1, 1);
-	  }while(rxData[0] != '\r');
+	  }while(rxData[0] != '\r' && rxData[0] != 's');
+	  if(rxData[0] == 's')
+	  {
+		  HAL_FLASH_Unlock();
+		  FLASH_Erase_Sector(FLASH_SECTOR_7, VOLTAGE_RANGE_3);
+		  HAL_FLASH_Lock();
+	  }
 	  EmptyBuffer();
 }
 
@@ -604,7 +691,7 @@ uint8_t Switch_12V_Func(void)
 	  return PowerSwitch;
 }
 
-void Poort_12V_Func(void)
+uint8_t Poort_12V_Func(void)
 {
 	  uint8_t RS232 = 1;
 	  uint8_t Switch = 0;
@@ -632,21 +719,8 @@ void Poort_12V_Func(void)
 			  Switch = 3;
 			  break;
 		  }
-		  if(rxData[0] == '\r' && Switch == 1)
-		  {
-			  GPIOA -> ODR |= GPIO_PIN_1;
-		  }
-		  else if(rxData[0] == '\r' && Switch == 2)
-		  {
-			  GPIOA -> ODR |= GPIO_PIN_0;
-		  }
-		  else if(rxData[0] == '\r' && Switch == 3)
-		  {
-			  GPIOA -> ODR |= GPIO_PIN_1;
-			  GPIOA -> ODR |= GPIO_PIN_0;
-		  }
 	  }while(rxData[0] != '\r' || Switch >= 4 || Switch == 0);
-	  Switch = 0;
+	  return Switch;
 }
 
 uint8_t Switch_Relay_Func(void)
@@ -676,10 +750,10 @@ uint8_t Switch_Relay_Func(void)
 	  return PowerSwitch;
 }
 
-void Poort_Relay_Func(void)
+uint8_t Poort_Relay_Func(void)
 {
 	  uint8_t RS232 = 1; //variable voor Enable RS-232 protocol
-	  uint8_t Switch = 0; //
+	  uint8_t Switch = 0;
 	  WriteRS(1, "Op welke poort heeft u deze aangesloten?\r\n");
 	  HAL_Delay(200);
 	  WriteRS(1, "type '1' voor poort 1\r\n");
@@ -704,28 +778,8 @@ void Poort_Relay_Func(void)
 			  Switch = 3;
 			  break;
 		  }
-		  if(rxData[0] == '\r' && Switch == 1)
-		  {
-			  GPIOC -> ODR |= GPIO_PIN_1;
-			  HAL_Delay(5);
-			  GPIOC -> ODR &= ~GPIO_PIN_1;
-		  }
-		  else if(rxData[0] == '\r' && Switch == 2)
-		  {
-			  GPIOC -> ODR |= GPIO_PIN_0;
-			  HAL_Delay(5);
-			  GPIOC -> ODR &= ~GPIO_PIN_0;
-		  }
-		  else if(rxData[0] == '\r' && Switch == 3)
-		  {
-			  GPIOC -> ODR |= GPIO_PIN_1;
-			  GPIOC -> ODR |= GPIO_PIN_0;
-			  HAL_Delay(5);
-			  GPIOC -> ODR &= ~GPIO_PIN_1;
-			  GPIOC -> ODR &= ~GPIO_PIN_0;
-		  }
 	  }while(rxData[0] != '\r' || Switch >= 4 || Switch == 0);
-	  Switch = 0;
+	  return Switch;
 }
 
 void Create_File_Func(void)
@@ -995,6 +1049,9 @@ void SaveRS(char FileName[], uint8_t RS)
 
 	  HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 	  HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+      HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR0, sTime.Hours);
+      HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, sTime.Minutes);
+      HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR2, sTime.Seconds);
 
 	  ToggleRGB('G', 0);
 
@@ -1087,6 +1144,9 @@ void SaveSDi(char FileName[])
 
 		  HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 		  HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+	      HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR0, sTime.Hours);
+	      HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, sTime.Minutes);
+	      HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR2, sTime.Seconds);
 
 		  ToggleRGB('G', 0);
 
@@ -1426,7 +1486,6 @@ void RemountSD(void)
 void Flash_Write(uint32_t Flash_Address, uint32_t Flash_Data)
 {
 	HAL_FLASH_Unlock();
-	FLASH_Erase_Sector(FLASH_SECTOR_7, VOLTAGE_RANGE_3);
 	HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, Flash_Address, Flash_Data);
 	HAL_FLASH_Lock();
 }
