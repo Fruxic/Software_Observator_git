@@ -100,7 +100,7 @@ uint8_t Switch_12V_Func(void);
 uint8_t Poort_12V_Func(void);
 uint8_t Switch_Relay_Func(void);
 uint8_t Poort_Relay_Func(void);
-void Create_File_Func(void);
+uint8_t Create_File_Func(void);
 void EmptyBuffer(void);
 void SetTime(void);
 void RemountSD(void);
@@ -126,16 +126,13 @@ int main(void)
 	uint8_t RS_Poort; //variable voor keuze RS protocol
 	uint8_t RS_Choice; //
 	uint8_t SDi; //Varaible voor keuze SDI poort aansluiting
-	uint8_t PowerSwitch; //variable voor powerswitch aansluiting (Relay/distributer)
 	uint8_t PowerSwitch_12V;
 	uint8_t PowerSwitch_Relay;
 	uint8_t Switch_12V;
 	uint8_t Switch_Relay;
 	uint8_t Sensor_RS = 0; //Variable voor sensor keuze op RS poort.
 	uint8_t Sensor_SDi = 0; //Variable voor sensor keuze op SDi12 poort.
-	uint8_t Seconds = 0;
-	uint8_t Minutes = 0;
-	uint8_t Hours = 0;
+	uint8_t File = 0;
   /* USER CODE END 1 */
   /* MCU Configuration--------------------------------------------------------*/
 
@@ -174,31 +171,16 @@ int main(void)
   Start_Up();
 
   //De RTC configureren en initialiseren
+  sDate.Date = 7;
+  sDate.Month = RTC_MONTH_JANUARY;
+  sDate.WeekDay = RTC_WEEKDAY_TUESDAY;
+  sDate.Year = 20;
+  HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
 
-  HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
-  if(sDate.Date <= 0)
-  {
-	  sDate.Date = 7;
-	  sDate.Month = RTC_MONTH_JANUARY;
-	  sDate.WeekDay = RTC_WEEKDAY_TUESDAY;
-	  sDate.Year = 20;
-	  HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
-  }
-
-  sTime.Hours = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR0);
-  sTime.Minutes = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1);
-  sTime.Seconds = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR2);
-
-  if(sTime.Hours == 0 && sTime.Minutes == 0 && sTime.Seconds == 0)
-  {
-	  WriteRS(1, "Stel de tijd in voor je RTC\r\n");
-	  SetTime();
-	  HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
-      HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR0, sTime.Hours);
-      HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, sTime.Minutes);
-      HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR2, sTime.Seconds);
-	  WriteRS(1, "\r\n");
-  }
+  WriteRS(1, "Stel de tijd in voor je RTC\r\n");
+  SetTime();
+  HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+  WriteRS(1, "\r\n");
 
   //Kiezen voor een RS aansluiting
   RS_Choice = Flash_Read(0x08060000);
@@ -256,7 +238,6 @@ int main(void)
 	  {
 		  Switch_12V = Poort_12V_Func();
 		  Flash_Write(0x080600a0, Switch_12V);
-		  PowerSwitch = 0;
 		  WriteRS(1, "\r\n");
 	  }
 	  if(Switch_12V == 1)
@@ -290,7 +271,6 @@ int main(void)
 	  {
 		  Switch_Relay = Poort_Relay_Func();
 		  Flash_Write(0x080600b0, Switch_Relay);
-		  PowerSwitch = 0;
 		  WriteRS(1, "\r\n");
 	  }
 	  else if(Switch_Relay == 1)
@@ -316,9 +296,13 @@ int main(void)
   }
 
   //Bestand aanmaken
-  Create_File_Func();
-
-  WriteRS(1, "\r\n");
+  File = Flash_Read(0x080600c0);
+  if(File <= 0 || File >= 3)
+  {
+	  File = Create_File_Func();
+	  Flash_Write(0x080600c0, File);
+	  WriteRS(1, "\r\n");
+  }
 
   WriteRS(1, "Programma start\r\n");
   Timer = 0; //Timer reset.
@@ -782,7 +766,7 @@ uint8_t Poort_Relay_Func(void)
 	  return Switch;
 }
 
-void Create_File_Func(void)
+uint8_t Create_File_Func(void)
 {
 	  uint8_t RS232 = 1;
 	  uint8_t File = 0;
@@ -810,6 +794,7 @@ void Create_File_Func(void)
 		  		  break;
 		  }
 	 }while(rxData[0] != '\r' || File >= 3 || File == 0);
+	 return File;
 }
 
 void ToggleRGB(char Colour, int Mode)
