@@ -166,145 +166,15 @@ int main(void)
   GPIO_Reset();
 
   HAL_TIM_Base_Start_IT(&htim2);
-
-  //De gebruiker moet alle sensoren eerst aansluiten voordat de gebruiker kan configureren.
-  Start_Up();
-
-  //De RTC configureren en initialiseren
-  sDate.Date = 7;
-  sDate.Month = RTC_MONTH_JANUARY;
-  sDate.WeekDay = RTC_WEEKDAY_TUESDAY;
-  sDate.Year = 20;
-  HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
-
-  WriteRS(1, "Stel de tijd in voor je RTC\r\n");
-  SetTime();
-  HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
-  WriteRS(1, "\r\n");
-
-  //Kiezen voor een RS aansluiting
   RS_Choice = Flash_Read(0x08060000);
-  if(RS_Choice <= 0 || RS_Choice >= 3)
-  {
-	  RS_Choice = RS_Choice_Func();
-	  Flash_Write(0x08060000, RS_Choice);
-	  WriteRS(1, "\r\n");
-	  //Kiezen tussen de RS-232, RS-422 en RS-485
-	  if(RS_Choice == 1)
-	  {
-		  RS_Poort = RS_Poort_Func();
-		  Flash_Write(0x08060010, RS_Poort);
-		  WriteRS(1, "\r\n");
-		  //Kiezen welke sensor de gebruiker wilt lezen op de gekozen RS poort.
-		  Sensor_RS = RS_Sensor_Func();
-		  Flash_Write(0x08060020, Sensor_RS);
-		  WriteRS(1, "\r\n");
-	  }
-  }
   RS_Poort = Flash_Read(0x08060010);
   Sensor_RS = Flash_Read(0x08060020);
-
-
-  //Kiezen voor een SDi12 aansluiting
   SDi = Flash_Read(0x08060030);
-  if(SDi <= 0 || SDi >= 3)
-  {
-  	 SDi = SDi_Poort_Func();
-	 Flash_Write(0x08060030, SDi);
-	 WriteRS(1, "\r\n");
-	 //Kiezen welke sensor de gebruiker wilt lezen op de SDi12 poort.
-	 if(SDi == 1)
-	 {
-		 Sensor_SDi = SDi_Sensor_Func();
-		 Flash_Write(0x08060040, Sensor_SDi);
-		 WriteRS(1, "\r\n");
-	 }
-  }
   Sensor_SDi = Flash_Read(0x08060040);
-
-  //Kiezen of de gebruiker een voeding nodig heeft voor zijn sensor
   PowerSwitch_12V = Flash_Read(0x08060050);
-  if(PowerSwitch_12V <= 0 || PowerSwitch_12V >= 3)
-  {
-	  PowerSwitch_12V = Switch_12V_Func();
-	  Flash_Write(0x08060050, PowerSwitch_12V);
-	  WriteRS(1, "\r\n");
-  }
-  //Kiezen op welke poort deze sensor zit aangesloten
   Switch_12V = Flash_Read(0x080600a0);
-  if(PowerSwitch_12V == 1)
-  {
-	  if(Switch_12V <= 0 || Switch_12V >= 4)
-	  {
-		  Switch_12V = Poort_12V_Func();
-		  Flash_Write(0x080600a0, Switch_12V);
-		  WriteRS(1, "\r\n");
-	  }
-	  if(Switch_12V == 1)
-	  {
-		  GPIOA -> ODR |= GPIO_PIN_1;
-	  }
-	  else if(Switch_12V == 2)
-	  {
-		  GPIOA -> ODR |= GPIO_PIN_0;
-	  }
-	  else if(Switch_12V == 3)
-	  {
-		  GPIOA -> ODR |= GPIO_PIN_1;
-		  GPIOA -> ODR |= GPIO_PIN_0;
-	  }
-  }
-
-  //Kiezen of de gebruiker een sensor wilt togglen
   PowerSwitch_Relay = Flash_Read(0x08060060);
-  if(PowerSwitch_Relay <= 0 || PowerSwitch_Relay >= 3)
-  {
-	  PowerSwitch_Relay = Switch_Relay_Func();
-	  Flash_Write(0x08060060, PowerSwitch_Relay);
-	  WriteRS(1, "\r\n");
-  }
-  //Kiezen op welke poort de sensor zit aangesloten om te togglen
   Switch_Relay = Flash_Read(0x080600b0);
-  if(PowerSwitch_Relay == 1)
-  {
-	  if(Switch_Relay <= 0 || Switch_Relay >= 4)
-	  {
-		  Switch_Relay = Poort_Relay_Func();
-		  Flash_Write(0x080600b0, Switch_Relay);
-		  WriteRS(1, "\r\n");
-	  }
-	  else if(Switch_Relay == 1)
-	  {
-		  GPIOC -> ODR |= GPIO_PIN_1;
-		  HAL_Delay(5);
-		  GPIOC -> ODR &= ~GPIO_PIN_1;
-	  }
-	  else if(Switch_Relay == 2)
-	  {
-		  GPIOC -> ODR |= GPIO_PIN_0;
-		  HAL_Delay(5);
-		  GPIOC -> ODR &= ~GPIO_PIN_0;
-	  }
-	  else if(Switch_Relay == 3)
-	  {
-		  GPIOC -> ODR |= GPIO_PIN_1;
-		  GPIOC -> ODR |= GPIO_PIN_0;
-		  HAL_Delay(5);
-		  GPIOC -> ODR &= ~GPIO_PIN_1;
-		  GPIOC -> ODR &= ~GPIO_PIN_0;
-	  }
-  }
-
-  //Bestand aanmaken
-  File = Flash_Read(0x080600c0);
-  if(File <= 0 || File >= 3)
-  {
-	  File = Create_File_Func();
-	  Flash_Write(0x080600c0, File);
-	  WriteRS(1, "\r\n");
-  }
-
-  WriteRS(1, "Programma start\r\n");
   Timer = 0; //Timer reset.
   LED = 1;
   /* USER CODE END 2 */
@@ -316,19 +186,161 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  ReadRS(1, 1, 5);
+	  if(rxData[0] == '\r')
+	  {
+		  LED = 0;
+
+		  //De gebruiker moet alle sensoren eerst aansluiten voordat de gebruiker kan configureren.
+		  Start_Up();
+
+		  //De RTC configureren en initialiseren
+		  sDate.Date = 7;
+		  sDate.Month = RTC_MONTH_JANUARY;
+		  sDate.WeekDay = RTC_WEEKDAY_TUESDAY;
+		  sDate.Year = 20;
+		  HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+
+		  WriteRS(1, "Stel de tijd in voor je RTC\r\n");
+		  SetTime();
+		  HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+		  WriteRS(1, "\r\n");
+
+		  //Kiezen voor een RS aansluiting
+		  RS_Choice = RS_Choice_Func();
+	      Flash_Write(0x08060000, RS_Choice);
+		  WriteRS(1, "\r\n");
+	      //Kiezen tussen de RS-232, RS-422 en RS-485
+		  if(RS_Choice == 1)
+		  {
+			 RS_Poort = RS_Poort_Func();
+			 Flash_Write(0x08060010, RS_Poort);
+			 WriteRS(1, "\r\n");
+			 //Kiezen welke sensor de gebruiker wilt lezen op de gekozen RS poort.
+			 Sensor_RS = RS_Sensor_Func();
+			 Flash_Write(0x08060020, Sensor_RS);
+			 WriteRS(1, "\r\n");
+		  }
+
+		  //Kiezen voor een SDi12 aansluiting
+		  SDi = SDi_Poort_Func();
+		  Flash_Write(0x08060030, SDi);
+		  WriteRS(1, "\r\n");
+		  //Kiezen welke sensor de gebruiker wilt lezen op de SDi12 poort.
+		  if(SDi == 1)
+		  {
+			  Sensor_SDi = SDi_Sensor_Func();
+			  Flash_Write(0x08060040, Sensor_SDi);
+			  WriteRS(1, "\r\n");
+		  }
+
+		  //Kiezen of de gebruiker een voeding nodig heeft voor zijn sensor
+		  PowerSwitch_12V = Switch_12V_Func();
+		  Flash_Write(0x08060050, PowerSwitch_12V);
+		  WriteRS(1, "\r\n");
+		  //Kiezen op welke poort deze sensor zit aangesloten
+		  if(PowerSwitch_12V == 1)
+		  {
+			  Switch_12V = Poort_12V_Func();
+			  Flash_Write(0x080600a0, Switch_12V);
+			  WriteRS(1, "\r\n");
+		  }
+
+		  //Kiezen of de gebruiker een sensor wilt togglen
+		  PowerSwitch_Relay = Switch_Relay_Func();
+		  Flash_Write(0x08060060, PowerSwitch_Relay);
+		  WriteRS(1, "\r\n");
+		  //Kiezen op welke poort de sensor zit aangesloten om te togglen
+		  Switch_Relay = Flash_Read(0x080600b0);
+		  if(PowerSwitch_Relay == 1)
+		  {
+			  Switch_Relay = Poort_Relay_Func();
+			  Flash_Write(0x080600b0, Switch_Relay);
+			  WriteRS(1, "\r\n");
+		  }
+		  else
+		  {
+			  //Relay reset
+			  GPIOC -> ODR |= GPIO_PIN_2;
+			  GPIOC -> ODR |= GPIO_PIN_4;
+			  HAL_Delay(5);
+			  GPIOC -> ODR &= ~GPIO_PIN_2;
+			  GPIOC -> ODR &= ~GPIO_PIN_4;
+		  }
+
+		  //Bestand aanmaken
+		  File = Create_File_Func();
+		  Flash_Write(0x080600c0, File);
+		  WriteRS(1, "\r\n");
+
+		  WriteRS(1, "Programma start\r\n");
+
+		  Timer = 0; //Timer reset.
+		  LED = 1;
+	  }
+
 	  EmptyBuffer();
 	  ToggleRGB('R', 0);
 	  RemountSD();
 
+	  if(PowerSwitch_12V == 1)
+	  {
+		  PowerSwitch_12V = 0;
+		  if(Switch_12V == 1)
+		  {
+		 	GPIOA -> ODR |= GPIO_PIN_1;
+		  }
+		  else if(Switch_12V == 2)
+		  {
+			  GPIOA -> ODR |= GPIO_PIN_0;
+		  }
+		  else if(Switch_12V == 3)
+		  {
+			  GPIOA -> ODR |= GPIO_PIN_1;
+			  GPIOA -> ODR |= GPIO_PIN_0;
+		  }
+	  }
+
+	  if(PowerSwitch_Relay == 1)
+	  {
+		  PowerSwitch_Relay = 0;
+		  if(Switch_Relay == 1)
+		  {
+			  GPIOC -> ODR |= GPIO_PIN_1;
+			  HAL_Delay(5);
+			  GPIOC -> ODR &= ~GPIO_PIN_1;
+			  //Relay reset
+			  GPIOC -> ODR |= GPIO_PIN_2;
+			  HAL_Delay(5);
+			  GPIOC -> ODR &= ~GPIO_PIN_2;
+		  }
+		  else if(Switch_Relay == 2)
+		  {
+			  GPIOC -> ODR |= GPIO_PIN_0;
+			  HAL_Delay(5);
+			  GPIOC -> ODR &= ~GPIO_PIN_0;
+			  //Relay reset
+			  GPIOC -> ODR |= GPIO_PIN_4;
+			  HAL_Delay(5);
+			  GPIOC -> ODR &= ~GPIO_PIN_4;
+		  }
+		  else if(Switch_Relay == 3)
+		  {
+			  GPIOC -> ODR |= GPIO_PIN_1;
+			  GPIOC -> ODR |= GPIO_PIN_0;
+			  HAL_Delay(5);
+			  GPIOC -> ODR &= ~GPIO_PIN_1;
+			  GPIOC -> ODR &= ~GPIO_PIN_0;
+		  }
+	  }
+
 	  if(Timer == 1 && Timer2 == 0) //Internal meusurement
 	  {
-		  RemountSD();
 		  MeasureLogInternal();
 		  Timer2++;
 	  }
 	  else if(Timer == 2)//external meusurement
 	  {
-		  RemountSD();
 		  if(Sensor_RS == 1 && RS_Choice == 1)
 		  {
 			  if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
@@ -382,8 +394,6 @@ int main(void)
 	  {
 		  Timer = 0;
 	  }
-
-	  EmptyBuffer();
   }
   /* USER CODE END 3 */
 }
@@ -472,12 +482,6 @@ void MeasureLogInternal(void)
 
 void GPIO_Reset(void)
 {
-	  //Relay reset
-	  GPIOC -> ODR |= GPIO_PIN_2;
-	  GPIOC -> ODR |= GPIO_PIN_4;
-	  HAL_Delay(5);
-	  GPIOC -> ODR &= ~GPIO_PIN_2;
-	  GPIOC -> ODR &= ~GPIO_PIN_4;
 	  //RGB uit
 	  ToggleRGB('R', 0);
 	  ToggleRGB('G', 0);
@@ -496,13 +500,10 @@ void Start_Up(void)
 	  {
 		  EmptyBuffer();
 		  ReadRS(RS232, 1, 1);
-	  }while(rxData[0] != '\r' && rxData[0] != 's');
-	  if(rxData[0] == 's')
-	  {
-		  HAL_FLASH_Unlock();
-		  FLASH_Erase_Sector(FLASH_SECTOR_7, VOLTAGE_RANGE_3);
-		  HAL_FLASH_Lock();
-	  }
+	  }while(rxData[0] != '\r');
+	  HAL_FLASH_Unlock();
+	  FLASH_Erase_Sector(FLASH_SECTOR_7, VOLTAGE_RANGE_3);
+	  HAL_FLASH_Lock();
 	  EmptyBuffer();
 }
 
