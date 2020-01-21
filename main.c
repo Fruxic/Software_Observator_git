@@ -1334,16 +1334,11 @@ void EmptyBuffer(void)
 void SetTime(void)
 {
       uint8_t RS232 = 1;
-	  char TimerHour[2];
-	  char TimerMin[2];
-	  char TimerSec[2];
-	  //Uren instellen
-	  if(TimerHour[0] > 0 || TimerHour[1] > 0)
-	  {
-		  TimerHour[0] = 0;
-		  TimerHour[1] = 0;
-	  }
+	  char TimerHour[2] = {0, 0};
+	  char TimerMin[2] = {0, 0};
+	  char TimerSec[2] = {0, 0};
 
+	  //Uren instellen
 	  WriteRS(1, "Uur:\t");
 
 	  do
@@ -1387,12 +1382,6 @@ void SetTime(void)
 	  WriteRS(1, "\r\n\0");
 
 	  //Minuten instellen
-	  if(TimerMin[0] > 0 || TimerMin[1] > 0)
-	  {
-		  TimerMin[0] = 0;
-		  TimerMin[1] = 0;
-	  }
-
 	  WriteRS(1, "Minuten:\t");
 
 	  do
@@ -1436,14 +1425,7 @@ void SetTime(void)
 	  WriteRS(1, "\r\n\0");
 
 	  //Seconden instellen
-	  if(TimerSec[0] > 0 || TimerSec[1] > 0)
-	  {
-		  TimerSec[0] = 0;
-		  TimerSec[1] = 0;
-	  }
-
 	  WriteRS(1, "Seconden:\t");
-
 	  do
 	  {
 		  do
