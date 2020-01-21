@@ -84,8 +84,8 @@ void CreateFile(char FileName[]);
 void CreateFileNew(char FileName[]);
 void SaveRH(char FileName[]);
 void SaveT(char FileName[]);
-void SaveRS(char FileName[], uint8_t RS);
-void SaveSDi(char FileName[]);
+void SaveRS(char FileName[], uint8_t RS, uint8_t Sensor);
+void SaveSDi(char FileName[], uint8_t Sensor);
 void WriteRS(uint8_t port, char Message[]);
 void ReadRS(uint8_t RS, uint8_t port, uint16_t TimeOut);
 void WriteSDi(char Message[], uint16_t TimeOut);
@@ -121,10 +121,6 @@ uint32_t Flash_Read(uint32_t Flash_Address);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-    char Tekst_Temp0[] = "PT12:\r\n";
-	char Tekst_Hum0[] = "OMC-160-3:\r\n";
-	char Tekst2[] = "BBBBBBBBB"; // Data overdracht test
-	char Tekst3[300];
 	uint8_t Timer2 = 0; //local Timer
 	uint8_t RS_Poort; //variable voor keuze RS protocol
 	uint8_t RS_Choice; //
@@ -167,8 +163,10 @@ int main(void)
   /* USER CODE BEGIN 2 */
   //Reset GPIO pinnen
   GPIO_Reset();
+  LED = 1;
 
   HAL_TIM_Base_Start_IT(&htim2);
+  Timer = 0; //Timer reset.
   RS_Choice = Flash_Read(0x08060000);
   RS_Poort = Flash_Read(0x08060010);
   Sensor_RS = Flash_Read(0x08060020);
@@ -178,8 +176,12 @@ int main(void)
   Switch_12V = Flash_Read(0x080600a0);
   PowerSwitch_Relay = Flash_Read(0x08060060);
   Switch_Relay = Flash_Read(0x080600b0);
-  Timer = 0; //Timer reset.
-  LED = 1;
+  HAL_PWR_EnableBkUpAccess();
+  HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR0);
+  HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1);
+  HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR2);
+  HAL_PWR_DisableBkUpAccess();
+  HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
   WriteRS(1, "\x1b[1J"); //Clear screen
   WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
 
@@ -193,45 +195,9 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  ToggleRGB('R', 0);
-	  CreateFileNew(FileName_Test);
-	  while(1)
-	  {
-		  if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
-		  {
-			  ToggleRGB('G', 0);
-			  ToggleRGB('B', 1);
-			  f_open(&myFile, FileName_Test, FA_WRITE | FA_OPEN_APPEND);
-			  for(uint32_t c = 0; c <= 100000; c++)
-			  {
-				  f_write(&myFile, &Tekst2, sizeof(Tekst2), &testByte);
-			  }
-			  f_close(&myFile);
-			  ToggleRGB('B', 0);
-			  ToggleRGB('G', 1);
-			  HAL_Delay(1000);
-		  }
-		  break;
-	  }
-
-	  while(1)
-	  {
-		  if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
-		  {
-			  ToggleRGB('G', 0);
-			  ToggleRGB('R', 1);
-			  f_open(&myFile, FileName_Test, FA_READ | FA_OPEN_APPEND);
-			  for(uint32_t c = 0; c <= 300; c++)
-			  {
-				  f_read(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
-			  }
-			  f_close(&myFile);
-			  ToggleRGB('R', 0);
-			  ToggleRGB('G', 1);
-			  HAL_Delay(1000);
-		  }
-	  }
-
+	  EmptyBuffer();
 	  ReadRS(1, 1, 5);
+
 	  if(rxData[0] == '\r')
 	  {
 		  LED = 0;
@@ -251,6 +217,11 @@ int main(void)
 		  WriteRS(1, "Stel de tijd in voor je RTC\r\n");
 		  SetTime();
 		  HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+		  HAL_PWR_EnableBkUpAccess();
+		  HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR0, sTime.Seconds);
+		  HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, sTime.Minutes);
+		  HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR2, sTime.Hours);
+		  HAL_PWR_DisableBkUpAccess();
 		  WriteRS(1, "\x1b[1J"); //Clear screen
 		  WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
 
@@ -336,9 +307,7 @@ int main(void)
 		  Timer = 0; //Timer reset.
 		  LED = 1;
 	  }
-
 	  EmptyBuffer();
-	  ToggleRGB('R', 0);
 	  RemountSD();
 
 	  if(PowerSwitch_12V == 1)
@@ -346,7 +315,7 @@ int main(void)
 		  PowerSwitch_12V = 0;
 		  if(Switch_12V == 1)
 		  {
-		 	GPIOA -> ODR |= GPIO_PIN_1;
+			  GPIOA -> ODR |= GPIO_PIN_1;
 		  }
 		  else if(Switch_12V == 2)
 		  {
@@ -399,50 +368,14 @@ int main(void)
 	  }
 	  else if(Timer == 2)//external meusurement
 	  {
-		  if(Sensor_RS == 1 && RS_Choice == 1)
+		  if(RS_Choice == 1)
 		  {
-			  if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
-			  {
-				  f_open(&myFile, FileName_Measure, FA_WRITE | FA_OPEN_APPEND);
-				  f_write(&myFile, &Tekst_Temp0, sizeof(Tekst_Temp0), &testByte);
-				  f_close(&myFile);
-				  HAL_Delay(5);
-				  SaveRS(FileName_Measure, RS_Poort);
-			  }
-		  }
-		  else if(Sensor_RS == 2 && RS_Choice == 1)
-		  {
-			  if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
-			  {
-				  f_open(&myFile, FileName_Measure, FA_WRITE | FA_OPEN_APPEND);
-				  f_write(&myFile, &Tekst_Hum0, sizeof(Tekst_Hum0), &testByte);
-				  f_close(&myFile);
-				  HAL_Delay(5);
-				  SaveRS(FileName_Measure, RS_Poort);
-			  }
+			  SaveRS(FileName_Measure, RS_Poort, Sensor_RS);
 		  }
 
-		  if(Sensor_SDi == 1 && SDi == 1)
+		  if(SDi == 1)
 		  {
-			  if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
-			  {
-				  f_open(&myFile, FileName_Measure, FA_WRITE | FA_OPEN_APPEND);
-				  f_write(&myFile, &Tekst_Temp0, sizeof(Tekst_Temp0), &testByte);
-				  f_close(&myFile);
-				  HAL_Delay(5);
-				  SaveSDi(FileName_Measure);
-			  }
-		  }
-		  else if(Sensor_SDi == 2 && SDi == 1)
-		  {
-			  if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
-			  {
-				  f_open(&myFile, FileName_Measure, FA_WRITE | FA_OPEN_APPEND);
-				  f_write(&myFile, &Tekst_Hum0, sizeof(Tekst_Hum0), &testByte);
-				  f_close(&myFile);
-				  HAL_Delay(5);
-				  SaveSDi(FileName_Measure);
-			  }
+			 SaveSDi(FileName_Measure, Sensor_SDi);
 		  }
 
 		  Timer = 0;
@@ -1063,21 +996,45 @@ void SaveT(char FileName[])
 	  }
 }
 
-void SaveRS(char FileName[], uint8_t RS)
+void SaveRS(char FileName[], uint8_t RS, uint8_t Sensor)
 {
 	  char Tekst2[] = "Tijd:";
 	  char Tekst3[] = "\r\n";
 	  char Tekst4[] = ":";
+	  char Tekst_Temp0[] = "PT12:\r\n";
+	  char Tekst_Hum0[] = "OMC-160-3:\r\n";
 
 	  ToggleRGB('G', 1);
 
-	  do
+	  /*do
 	  {
 		  EmptyBuffer();
 		  ReadRS(RS, 2, 350);
-	  }while(rxData[0] != 36);
+	  }while(rxData[0] != 36);*/
 
-	  for(int x = 1; x <= 39; x++)
+	  EmptyBuffer();
+	  ReadRS(RS, 2, 350);
+	  if(rxData[0] == 36)
+	  {
+		  for(int x = 1; x <= 39; x++)
+		  {
+			  if(rxData[x] == 36)
+			  {
+				  for(int y = x; y <= 39; y++)
+				  {
+					  rxData[y] = 0;
+				  }
+				  WriteRS(1, rxData);
+				  break;
+			  }
+		  }
+	  }
+	  else
+	  {
+		  EmptyBuffer();
+	  }
+
+	  /*for(int x = 1; x <= 39; x++)
 	  {
 		  if(rxData[x] == 36)
 		  {
@@ -1087,9 +1044,7 @@ void SaveRS(char FileName[], uint8_t RS)
 			  }
 			  break;
 		  }
-	  }
-
-	  WriteRS(1, rxData);
+	  }*/
 
 	  HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 	  HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
@@ -1099,9 +1054,21 @@ void SaveRS(char FileName[], uint8_t RS)
 
 	  ToggleRGB('G', 0);
 
-	  if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
+	  if((f_mount(&myFATFS, SDPath, 1) == FR_OK) && rxData[0] == 36)
 	  {
 		  ToggleRGB('R', 1);
+		  if(Sensor == 1)
+		  {
+			  f_open(&myFile, FileName_Measure, FA_WRITE | FA_OPEN_APPEND);
+			  f_write(&myFile, &Tekst_Temp0, sizeof(Tekst_Temp0), &testByte);
+			  f_close(&myFile);
+		  }
+		  else if (Sensor == 2)
+		  {
+			  f_open(&myFile, FileName_Measure, FA_WRITE | FA_OPEN_APPEND);
+			  f_write(&myFile, &Tekst_Hum0, sizeof(Tekst_Hum0), &testByte);
+			  f_close(&myFile);
+		  }
 		  //Import meusurement in SD card
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &rxData, sizeof(rxData), &testByte);
@@ -1151,17 +1118,17 @@ void SaveRS(char FileName[], uint8_t RS)
 	  }
 }
 
-void SaveSDi(char FileName[])
+void SaveSDi(char FileName[], uint8_t Sensor)
 {
 	  char Tekst2[] = "Tijd:";
 	  char Tekst3[] = "\r\n";
 	  char Tekst4[] = ":";
+	  char Tekst_Temp0[] = "PT12:\r\n";
+	  char Tekst_Hum0[] = "OMC-160-3:\r\n";
 
-	  if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
-	  {
-		  ToggleRGB('G', 1);
+	  ToggleRGB('G', 1);
 
-		  GPIOB -> ODR |= GPIO_PIN_10;
+	  GPIOB -> ODR |= GPIO_PIN_10;
 
 		  HAL_LIN_SendBreak(&huart1);
 		  HAL_Delay(20);
@@ -1194,7 +1161,23 @@ void SaveSDi(char FileName[])
 
 		  ToggleRGB('G', 0);
 
+
+	  if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
+	  {
 		  ToggleRGB('R', 1);
+		  if(Sensor == 1)
+		  {
+			  f_open(&myFile, FileName_Measure, FA_WRITE | FA_OPEN_APPEND);
+			  f_write(&myFile, &Tekst_Temp0, sizeof(Tekst_Temp0), &testByte);
+			  f_close(&myFile);
+		  }
+		  else if(Sensor == 2)
+		  {
+			  f_open(&myFile, FileName_Measure, FA_WRITE | FA_OPEN_APPEND);
+			  f_write(&myFile, &Tekst_Hum0, sizeof(Tekst_Hum0), &testByte);
+			  f_close(&myFile);
+		  }
+
 		  f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		  f_write(&myFile, &rxData, sizeof(rxData), &testByte);
 		  f_close(&myFile);
