@@ -364,7 +364,7 @@ int main(void)
 	  if(Timer == 1 && Timer2 == 0) //Internal meusurement
 	  {
 		  MeasureLogInternal();
-		  Timer2++;
+		  Timer2 = 1;
 	  }
 	  else if(Timer == 2)//external meusurement
 	  {
@@ -1006,12 +1006,6 @@ void SaveRS(char FileName[], uint8_t RS, uint8_t Sensor)
 
 	  ToggleRGB('G', 1);
 
-	  /*do
-	  {
-		  EmptyBuffer();
-		  ReadRS(RS, 2, 350);
-	  }while(rxData[0] != 36);*/
-
 	  EmptyBuffer();
 	  ReadRS(RS, 2, 350);
 	  if(rxData[0] == 36)
@@ -1033,18 +1027,6 @@ void SaveRS(char FileName[], uint8_t RS, uint8_t Sensor)
 	  {
 		  EmptyBuffer();
 	  }
-
-	  /*for(int x = 1; x <= 39; x++)
-	  {
-		  if(rxData[x] == 36)
-		  {
-			  for(int y = x; y <= 39; y++)
-			  {
-				  rxData[y] = 0;
-			  }
-			  break;
-		  }
-	  }*/
 
 	  HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 	  HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
@@ -1130,15 +1112,15 @@ void SaveSDi(char FileName[], uint8_t Sensor)
 
 	  GPIOB -> ODR |= GPIO_PIN_10;
 
-		  HAL_LIN_SendBreak(&huart1);
-		  HAL_Delay(20);
-		  WriteSDi("0M1!", 200);
+	  HAL_LIN_SendBreak(&huart1);
+      HAL_Delay(20);
+	  WriteSDi("0M1!", 200);
 
-		  GPIOB -> ODR &= ~GPIO_PIN_10;
+	  GPIOB -> ODR &= ~GPIO_PIN_10;
 
-		  EmptyBuffer();
-		  ReadSDi(100);
-		  WriteRS(1, rxData);
+	  EmptyBuffer();
+	  ReadSDi(100);
+	  WriteRS(1, rxData);
 
 		  GPIOB -> ODR |= GPIO_PIN_10;
 
