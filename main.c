@@ -32,7 +32,6 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <string.h>
-#include "MY_FLASH.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -66,7 +65,6 @@ TIM_HandleTypeDef htim2;
 char rxData[40]; //Buffer
 char FileName_Internal[] = "Diag.txt"; //Bestands naam voor interne sensor
 char FileName_Measure[] = "Measure.txt";//Bestands naam voor externe sensor
-char FileName_Test[] = "TEST.txt"; //Data overdracht test
 uint8_t Timer = 0; //Timer voor de interrupt
 uint8_t LED = 0;
 /* USER CODE END PV */
@@ -92,7 +90,6 @@ void WriteSDi(char Message[], uint16_t TimeOut);
 void ReadSDi(uint16_t TimeOut);
 void GPIO_Reset(void);
 void Start_Up(void);
-uint8_t Create_File_Func(void);
 void EmptyBuffer(void);
 void SetTime(void);
 void RemountSD(void);
@@ -107,13 +104,12 @@ void Flash_Erase_SectorSeven(void);
 /* USER CODE END 0 */
 
 /**
- * @brief  The application entry point.
- * @retval int
- */
+  * @brief  The application entry point.
+  * @retval int
+  */
 int main(void)
 {
 	/* USER CODE BEGIN 1 */
-	uint8_t File = 0;
 	uint8_t Timer2 = 0;
 
 	char Poort_Switch[2][10] = {" CLOSED",
@@ -140,6 +136,8 @@ int main(void)
 	uint8_t Save_Seven = 0;
 	uint8_t Relay = 0;
 	/* USER CODE END 1 */
+
+
 	/* MCU Configuration--------------------------------------------------------*/
 
 	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
@@ -177,6 +175,7 @@ int main(void)
 	sDate.WeekDay = RTC_WEEKDAY_TUESDAY;
 	sDate.Year = 20;
 	HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+	HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 
 	HAL_TIM_Base_Start_IT(&htim2);
 	Timer = 0; //Timer reset.
@@ -214,6 +213,8 @@ int main(void)
 			WriteRS(1, "MENU\r\n");
 			WriteRS(1, "1) Seriele Poorten\r\n");
 			WriteRS(1, "2) Sensor Voeding switch\r\n");
+			WriteRS(1, "3) RTC\r\n");
+			WriteRS(1, "4) Verwijder inhoud micro-SD\r\n");
 			MM = 1;
 		}
 		if(Sp == 1) // Seriele poort optie menu
@@ -246,9 +247,10 @@ int main(void)
 			WriteRS(1, Poort_Switch[Save_Three]);
 			WriteRS(1, "\r\n");
 			WriteRS(1, "   5) PT12\r\n");
+			WriteRS(1, "Druk Backspace om terug te gaan naar het hoofd menu\r\n");
 			Sp = 0;
 		}
-		if(Sp == 2) // Power Switch optie Menu
+		else if(Sp == 2) // Power Switch optie Menu
 		{
 			Opt_Menu = 2;
 			WriteRS(1, "\x1b[2J"); //Clear screen
@@ -283,12 +285,35 @@ int main(void)
 			}
 			WriteRS(1, Poort_Switch[Save_Seven]);
 			WriteRS(1, "\r\n");
+			WriteRS(1, "Druk Backspace om terug te gaan naar het hoofd menu\r\n");
 			Sp = 0;
+		}
+		else if(Sp == 3)
+		{
+			LED = 0;
+			WriteRS(1, "\x1b[1J"); //Clear screen
+			WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
+			SetTime();
+			HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+			Sp = 0;
+			MM = 0;
+			LED = 1;
+		}
+		else if(Sp == 4)
+		{
+			WriteRS(1, "\x1b[1J"); //Clear screen
+			WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
+			CreateFileNew(FileName_Internal);
+			CreateFileNew(FileName_Measure);
+			WriteRS(1, "Done!");
+			HAL_Delay(500);
+			Sp = 0;
+			MM = 0;
 		}
 
 		switch(rxData[0])
 		{
-		case 'e':
+		case 8:
 			MM = 0;
 			break;
 		case '1':
@@ -299,6 +324,7 @@ int main(void)
 			else if(Opt_Menu == 1)
 			{
 				Sp = 1;
+				Opt_One = Save_One;
 				Opt_One++;
 				if(Opt_One >= 2)
 				{
@@ -317,6 +343,7 @@ int main(void)
 			else if(Opt_Menu == 2)
 			{
 				Sp = 2;
+				Opt_Four = Save_Four;
 				Opt_Four++;
 				if(Opt_Four >= 2)
 				{
@@ -341,6 +368,7 @@ int main(void)
 			else if(Opt_Menu == 1)
 			{
 				Sp = 1;
+				Opt_Two = Save_Two;
 				Opt_Two++;
 				if(Opt_Two >= 3)
 				{
@@ -359,6 +387,7 @@ int main(void)
 			else if(Opt_Menu == 2)
 			{
 				Sp = 2;
+				Opt_Five = Save_Five;
 				Opt_Five++;
 				if(Opt_Five >= 2)
 				{
@@ -376,10 +405,15 @@ int main(void)
 			}
 			break;
 		case '3':
-			if(Opt_Menu == 2)
+			if(Opt_Menu == 0)
+			{
+				Sp = 3;
+			}
+			else if(Opt_Menu == 2)
 			{
 				Sp = 2;
 				Relay = 1;
+				Opt_Six = Save_Six;
 				Opt_Six++;
 				if(Opt_Six >= 2)
 				{
@@ -397,9 +431,14 @@ int main(void)
 			}
 			break;
 		case '4':
-			if(Opt_Menu == 1)
+			if(Opt_Menu == 0)
+			{
+				Sp = 4;
+			}
+			else if(Opt_Menu == 1)
 			{
 				Sp = 1;
+				Opt_Three = Save_Three;
 				Opt_Three++;
 				if(Opt_Three >= 2)
 				{
@@ -418,6 +457,7 @@ int main(void)
 			else if(Opt_Menu == 2)
 			{
 				Sp = 2;
+				Opt_Seven = Save_Seven;
 				Opt_Seven++;
 				Relay = 2;
 				if(Opt_Seven >= 2)
@@ -526,56 +566,56 @@ int main(void)
 }
 
 /**
- * @brief System Clock Configuration
- * @retval None
- */
+  * @brief System Clock Configuration
+  * @retval None
+  */
 void SystemClock_Config(void)
 {
-	RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-	RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-	RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
-	/** Configure the main internal regulator output voltage
-	 */
-	__HAL_RCC_PWR_CLK_ENABLE();
-	__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
-	/** Initializes the CPU, AHB and APB busses clocks
-	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
-	RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-	RCC_OscInitStruct.LSIState = RCC_LSI_ON;
-	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-	RCC_OscInitStruct.PLL.PLLM = 8;
-	RCC_OscInitStruct.PLL.PLLN = 100;
-	RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-	RCC_OscInitStruct.PLL.PLLQ = 4;
-	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	/** Initializes the CPU, AHB and APB busses clocks
-	 */
-	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-			|RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  /** Configure the main internal regulator output voltage 
+  */
+  __HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
+  /** Initializes the CPU, AHB and APB busses clocks 
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLN = 100;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+  RCC_OscInitStruct.PLL.PLLQ = 4;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Initializes the CPU, AHB and APB busses clocks 
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC;
-	PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
-	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
-	{
-		Error_Handler();
-	}
-	/** Enables the Clock Security System
-	 */
-	HAL_RCC_EnableCSS();
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC;
+  PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Enables the Clock Security System 
+  */
+  HAL_RCC_EnableCSS();
 }
 
 /* USER CODE BEGIN 4 */
@@ -617,37 +657,6 @@ void GPIO_Reset(void)
 	GPIOB -> ODR |= GPIO_PIN_0;
 	//Protocol tranceiver aan (Nu een Userinterface in RS232 mode)
 	GPIOB -> ODR |= GPIO_PIN_12;
-}
-
-uint8_t Create_File_Func(void)
-{
-	uint8_t RS232 = 1;
-	uint8_t File = 0;
-	WriteRS(1, "Wil je de oude bestanden verwijderen of erover heen schrijven?\r\n");
-	HAL_Delay(200);
-	WriteRS(1, "type '1' voor verwijderen\r\n");
-	HAL_Delay(200);
-	WriteRS(1, "type '2' voor overheen schrijven\r\n");
-	do
-	{
-		EmptyBuffer();
-		ReadRS(RS232, 1, 1);
-		WriteRS(1, rxData);
-		switch(rxData[0])
-		{
-		case '1':
-			File = 1;
-			CreateFileNew(FileName_Internal);
-			CreateFileNew(FileName_Measure);
-			break;
-		case '2':
-			File = 2;
-			CreateFile(FileName_Internal);
-			CreateFile(FileName_Measure);
-			break;
-		}
-	}while(rxData[0] != '\r' || File >= 3 || File == 0);
-	return File;
 }
 
 void ToggleRGB(char Colour, int Mode)
@@ -760,98 +769,61 @@ uint8_t MeasureRH(void)
 
 void SaveRH(char FileName[])
 {
+	char Tekst[] = "Interne RH:";
+	char Tekst1[] = "%\r\n";
 	if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
 	{
-		char Tekst[] = "Interne RH:";
-		char Tekst1[] = "%\r\n";
-
 		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
-		f_write(&myFile, &Tekst, sizeof(Tekst), &testByte);
-		f_close(&myFile);
-		HAL_Delay(5);
 
+		f_write(&myFile, &Tekst, sizeof(Tekst), &testByte);
 		uint8_t h = MeasureRH();
 		char Data[2];
 		itoa(h, Data, 10);
 		ToggleRGB('R', 1);
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &Data, sizeof(Data), &testByte);
-		f_close(&myFile);
-		HAL_Delay(5);
-
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &Tekst1, sizeof(Tekst1), &testByte);
+
 		f_close(&myFile);
-		HAL_Delay(5);
 		ToggleRGB('R', 0);
 	}
 }
 
 void SaveT(char FileName[])
 {
+	char Tekst[] = "Interne T:";
+	char Tekst1[] = "Graden\r";
+	char Tekst2[] = "Tijd:";
+	char Tekst3[] = "\r\n";
+	char Tekst4[] = ":";
 	if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
 	{
-		char Tekst[] = "Interne T:";
-		char Tekst1[] = "Graden\r";
-		char Tekst2[] = "Tijd:";
-		char Tekst3[] = "\r\n";
-		char Tekst4[] = ":";
-
 		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
-		f_write(&myFile, &Tekst, sizeof(Tekst), &testByte);
-		f_close(&myFile);
 
+		f_write(&myFile, &Tekst, sizeof(Tekst), &testByte);
 		uint8_t t = MeasureT();
 		char Data[2];
 		itoa(t, Data, 10);
 		ToggleRGB('R', 1);
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &Data, sizeof(Data), &testByte);
-		f_close(&myFile);
-
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &Tekst1, sizeof(Tekst1), &testByte);
-		f_close(&myFile);
-
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &Tekst2, sizeof(Tekst2), &testByte);
-		f_close(&myFile);
-
 		uint8_t h = sTime.Hours;
 		char DataH[2];
 		itoa(h, DataH, 10);
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &DataH, sizeof(DataH), &testByte);
-		f_close(&myFile);
-
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
-		f_close(&myFile);
-
 		uint8_t m = sTime.Minutes;
 		char DataM[2];
 		itoa(m, DataM, 10);
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &DataM, sizeof(DataM), &testByte);
-		f_close(&myFile);
-
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
-		f_close(&myFile);
-
 		uint8_t s = sTime.Seconds;
 		char DataS[2];
 		itoa(s, DataS, 10);
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &DataS, sizeof(DataS), &testByte);
-		f_close(&myFile);
-
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
-		f_close(&myFile);
-
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
+
 		f_close(&myFile);
 		ToggleRGB('R', 0);
 	}
@@ -911,48 +883,26 @@ void SaveRS(char FileName[], uint8_t RS, uint8_t Sensor)
 		}
 		//Import meusurement in SD card
 		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
+
 		f_write(&myFile, &rxData, sizeof(rxData), &testByte);
-		f_close(&myFile);
-
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &Tekst2, sizeof(Tekst2), &testByte);
-		f_close(&myFile);
-
 		uint8_t h = sTime.Hours;
 		char DataH[2];
 		itoa(h, DataH, 10);
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &DataH, sizeof(DataH), &testByte);
-		f_close(&myFile);
-
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
-		f_close(&myFile);
-
 		uint8_t m = sTime.Minutes;
 		char DataM[2];
 		itoa(m, DataM, 10);
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &DataM, sizeof(DataM), &testByte);
-		f_close(&myFile);
-
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
-		f_close(&myFile);
-
 		uint8_t s = sTime.Seconds;
 		char DataS[2];
 		itoa(s, DataS, 10);
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &DataS, sizeof(DataS), &testByte);
-		f_close(&myFile);
-
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
-		f_close(&myFile);
-
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
+
 		f_close(&myFile);
 		ToggleRGB('R', 0);
 	}
@@ -1011,50 +961,27 @@ void SaveSDi(char FileName[], uint8_t Sensor)
 			f_write(&myFile, &Tekst_Hum0, sizeof(Tekst_Hum0), &testByte);
 			f_close(&myFile);
 		}
-
 		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
+
 		f_write(&myFile, &rxData, sizeof(rxData), &testByte);
-		f_close(&myFile);
-
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &Tekst2, sizeof(Tekst2), &testByte);
-		f_close(&myFile);
-
 		uint8_t h = sTime.Hours;
 		char DataH[2];
 		itoa(h, DataH, 10);
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &DataH, sizeof(DataH), &testByte);
-		f_close(&myFile);
-
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
-		f_close(&myFile);
-
 		uint8_t m = sTime.Minutes;
 		char DataM[2];
 		itoa(m, DataM, 10);
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &DataM, sizeof(DataM), &testByte);
-		f_close(&myFile);
-
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
-		f_close(&myFile);
-
 		uint8_t s = sTime.Seconds;
 		char DataS[2];
 		itoa(s, DataS, 10);
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &DataS, sizeof(DataS), &testByte);
-		f_close(&myFile);
-
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
-		f_close(&myFile);
-
-		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 		f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
+
 		f_close(&myFile);
 		ToggleRGB('R', 0);
 	}
@@ -1198,7 +1125,7 @@ void SetTime(void)
 		do
 		{
 			EmptyBuffer();
-			if(sTime.Hours > 0)
+			if(sTime.Hours >= 1)
 			{
 				break;
 			}
@@ -1207,31 +1134,41 @@ void SetTime(void)
 			TimerHour[0] = rxData[0];
 		}while(rxData[0] < 48 || rxData[0] > 50);
 
-		do
+		if(TimerHour[0] == 48 || TimerHour[0] == 49)
 		{
-			EmptyBuffer();
-			if(sTime.Hours > 0)
+			do
 			{
-				break;
-			}
-			ReadRS(RS232, 1, 1);
-			WriteRS(1, rxData);
-			TimerHour[1] = rxData[0];
-		}while(rxData[0] < 48 || rxData[0] > 51);
-
+				EmptyBuffer();
+				if(sTime.Hours >= 1)
+				{
+					break;
+				}
+				ReadRS(RS232, 1, 1);
+				WriteRS(1, rxData);
+				TimerHour[1] = rxData[0];
+			}while(rxData[0] < 48 || rxData[0] > 57);
+		}
+		else if(TimerHour[0] == 50)
+		{
+			do
+			{
+				EmptyBuffer();
+				if(sTime.Hours >= 1)
+				{
+					break;
+				}
+				ReadRS(RS232, 1, 1);
+				WriteRS(1, rxData);
+				TimerHour[1] = rxData[0];
+			}while(rxData[0] < 48 || rxData[0] > 52);
+		}
 		sTime.Hours = atoi(TimerHour);
 
 		ReadRS(RS232, 1, 1);
 
 	}while(rxData[0] != '\r' || sTime.Hours < 0 || sTime.Hours > 23);
 
-	if(TimerHour[0] > 0 || TimerHour[1] > 0)
-	{
-		TimerHour[0] = 0;
-		TimerHour[1] = 0;
-	}
-
-	WriteRS(1, "\r\n\0");
+	WriteRS(1, "\r\n");
 
 	//Minuten instellen
 	WriteRS(1, "Minuten:\t");
@@ -1241,7 +1178,7 @@ void SetTime(void)
 		do
 		{
 			EmptyBuffer();
-			if(sTime.Minutes > 0)
+			if(sTime.Minutes >= 1)
 			{
 				break;
 			}
@@ -1253,7 +1190,7 @@ void SetTime(void)
 		do
 		{
 			EmptyBuffer();
-			if(sTime.Minutes > 0)
+			if(sTime.Minutes >= 1)
 			{
 				break;
 			}
@@ -1268,12 +1205,6 @@ void SetTime(void)
 
 	}while(rxData[0] != '\r' || sTime.Minutes < 0 || sTime.Minutes > 59);
 
-	if(TimerMin[0] > 0 || TimerMin[1] > 0)
-	{
-		TimerMin[0] = 0;
-		TimerMin[1] = 0;
-	}
-
 	WriteRS(1, "\r\n\0");
 
 	//Seconden instellen
@@ -1283,7 +1214,7 @@ void SetTime(void)
 		do
 		{
 			EmptyBuffer();
-			if(sTime.Seconds > 0)
+			if(sTime.Seconds >= 1)
 			{
 				break;
 			}
@@ -1295,7 +1226,7 @@ void SetTime(void)
 		do
 		{
 			EmptyBuffer();
-			if(sTime.Seconds > 0)
+			if(sTime.Seconds >= 1)
 			{
 				break;
 			}
@@ -1309,12 +1240,6 @@ void SetTime(void)
 		ReadRS(RS232, 1, 1);
 
 	}while(rxData[0] != '\r' || sTime.Seconds < 0 || sTime.Seconds > 59);
-
-	if(TimerSec[0] > 0 || TimerSec[1] > 0)
-	{
-		TimerSec[0] = 0;
-		TimerSec[1] = 0;
-	}
 }
 
 void RemountSD(void)
@@ -1352,31 +1277,31 @@ void Flash_Erase_SectorSeven(void)
 /* USER CODE END 4 */
 
 /**
- * @brief  This function is executed in case of error occurrence.
- * @retval None
- */
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
 void Error_Handler(void)
 {
-	/* USER CODE BEGIN Error_Handler_Debug */
+  /* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 
-	/* USER CODE END Error_Handler_Debug */
+  /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
 /**
- * @brief  Reports the name of the source file and the source line number
- *         where the assert_param error has occurred.
- * @param  file: pointer to the source file name
- * @param  line: assert_param error line source number
- * @retval None
- */
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
 void assert_failed(uint8_t *file, uint32_t line)
 { 
-	/* USER CODE BEGIN 6 */
+  /* USER CODE BEGIN 6 */
 	/* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-	/* USER CODE END 6 */
+  /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
 
