@@ -92,21 +92,13 @@ void WriteSDi(char Message[], uint16_t TimeOut);
 void ReadSDi(uint16_t TimeOut);
 void GPIO_Reset(void);
 void Start_Up(void);
-uint8_t RS_Choice_Func(void);
-uint8_t RS_Poort_Func(void);
-uint8_t RS_Sensor_Func(void);
-uint8_t SDi_Poort_Func(void);
-uint8_t SDi_Sensor_Func(void);
-uint8_t Switch_12V_Func(void);
-uint8_t Poort_12V_Func(void);
-uint8_t Switch_Relay_Func(void);
-uint8_t Poort_Relay_Func(void);
 uint8_t Create_File_Func(void);
 void EmptyBuffer(void);
 void SetTime(void);
 void RemountSD(void);
 void Flash_Write(uint32_t Flash_Address, uint32_t Flash_Data);
 uint32_t Flash_Read(uint32_t Flash_Address);
+void Flash_Erase_SectorSeven(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -133,19 +125,20 @@ int main(void)
 	uint8_t Sp = 0;
 	uint8_t Opt_Menu = 0; //Onthouden welke menu de gebruiker in zit
 	uint8_t Opt_One = 0; //Open/Closed Seriele poort optie
-	uint8_t Save_One;
+	uint8_t Save_One = 0;
 	uint8_t Opt_Two = 0; //RS-232/RS-422/RS-485 Seriele poort optie
-	uint8_t Save_Two;
+	uint8_t Save_Two = 0;
 	uint8_t Opt_Three = 0; //Open/Closed SDi-12 poort optie
-	uint8_t Save_Three;
+	uint8_t Save_Three = 0;
 	uint8_t Opt_Four = 0; //Open/Closed Power switch poort 1 optie
-	uint8_t Save_Four;
+	uint8_t Save_Four = 0;
 	uint8_t Opt_Five = 0; //Open/Closed Power switch poort 2 optie
-	uint8_t Save_Five;
+	uint8_t Save_Five = 0;
 	uint8_t Opt_Six = 0; //Open/Closed Relay poort 1 optie
-	uint8_t Save_Six;
+	uint8_t Save_Six = 0;
 	uint8_t Opt_Seven = 0; //Open/Closed Relay poort 2 optie
-	uint8_t Save_Seven;
+	uint8_t Save_Seven = 0;
+	uint8_t Relay = 0;
 	/* USER CODE END 1 */
 	/* MCU Configuration--------------------------------------------------------*/
 
@@ -187,6 +180,15 @@ int main(void)
 
 	HAL_TIM_Base_Start_IT(&htim2);
 	Timer = 0; //Timer reset.
+
+	Save_One = Flash_Read(0x08060000); //Open/Closed Seriele poort optie variable is opgeslagen in sector 7 0x08060000
+	Save_Two = Flash_Read(0x08060010); //RS-232/RS-422/RS-485 Seriele poort optie variable opgeslagen in 0x08060010
+	Save_Three = Flash_Read(0x08060020); //
+	Save_Four = Flash_Read(0x08060030);
+	Save_Five = Flash_Read(0x08060040);
+	Save_Six = Flash_Read(0x08060050);
+	Save_Seven = Flash_Read(0x08060060);
+
 	WriteRS(1, "\x1b[1J"); //Clear screen
 	WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
 
@@ -221,15 +223,27 @@ int main(void)
 			WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
 			WriteRS(1, "Seriele Poort\r\n");
 			WriteRS(1, "   1)");
-			WriteRS(1, Poort_Switch[Opt_One]);
+			if(Save_One >= 100)
+			{
+				Save_One = 0;
+			}
+			WriteRS(1, Poort_Switch[Save_One]);
 			WriteRS(1, "\r\n");
 			WriteRS(1, "   2)");
-			WriteRS(1, Poort_Protocol_RS[Opt_Two]);
+			if(Save_Two >= 100)
+			{
+				Save_Two = 0;
+			}
+			WriteRS(1, Poort_Protocol_RS[Save_Two]);
 			WriteRS(1, "\r\n");
 			WriteRS(1, "   3) OMC-160-3\r\n");
 			WriteRS(1, "SDi-12\r\n");
 			WriteRS(1, "   4)");
-			WriteRS(1, Poort_Switch[Opt_Three]);
+			if(Save_Three >= 100)
+			{
+				Save_Three = 0;
+			}
+			WriteRS(1, Poort_Switch[Save_Three]);
 			WriteRS(1, "\r\n");
 			WriteRS(1, "   5) PT12\r\n");
 			Sp = 0;
@@ -241,17 +255,33 @@ int main(void)
 			WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
 			WriteRS(1, "Power Switch\r\n");
 			WriteRS(1, "   1) Poort 1:");
-			WriteRS(1, Poort_Switch[Opt_Four]);
+			if(Save_Four >= 100)
+			{
+				Save_Four = 0;
+			}
+			WriteRS(1, Poort_Switch[Save_Four]);
 			WriteRS(1, "\r\n");
 			WriteRS(1, "   2) Poort 2:");
-			WriteRS(1, Poort_Switch[Opt_Five]);
+			if(Save_Five >= 100)
+			{
+				Save_Five = 0;
+			}
+			WriteRS(1, Poort_Switch[Save_Five]);
 			WriteRS(1, "\r\n");
 			WriteRS(1, "Relay Switch\r\n");
 			WriteRS(1, "   3) Poort 1:");
-			WriteRS(1, Poort_Switch[Opt_Six]);
+			if(Save_Six >= 100)
+			{
+				Save_Six = 0;
+			}
+			WriteRS(1, Poort_Switch[Save_Six]);
 			WriteRS(1, "\r\n");
 			WriteRS(1, "   4) Poort 2:");
-			WriteRS(1, Poort_Switch[Opt_Seven]);
+			if(Save_Seven >= 100)
+			{
+				Save_Seven = 0;
+			}
+			WriteRS(1, Poort_Switch[Save_Seven]);
 			WriteRS(1, "\r\n");
 			Sp = 0;
 		}
@@ -274,6 +304,15 @@ int main(void)
 				{
 					Opt_One = 0;
 				}
+				Flash_Erase_SectorSeven();
+				Flash_Write(0x08060000, Opt_One);
+				Save_One = Flash_Read(0x08060000);
+				Flash_Write(0x08060010, Save_Two);
+				Flash_Write(0x08060020, Save_Three);
+				Flash_Write(0x08060030, Save_Four);
+				Flash_Write(0x08060040, Save_Five);
+				Flash_Write(0x08060050, Save_Six);
+				Flash_Write(0x08060060, Save_Seven);
 			}
 			else if(Opt_Menu == 2)
 			{
@@ -283,6 +322,15 @@ int main(void)
 				{
 					Opt_Four = 0;
 				}
+				Flash_Erase_SectorSeven();
+				Flash_Write(0x08060030, Opt_Four);
+				Save_Four = Flash_Read(0x08060030);
+				Flash_Write(0x08060010, Save_Two);
+				Flash_Write(0x08060020, Save_Three);
+				Flash_Write(0x08060000, Save_One);
+				Flash_Write(0x08060040, Save_Five);
+				Flash_Write(0x08060050, Save_Six);
+				Flash_Write(0x08060060, Save_Seven);
 			}
 			break;
 		case '2':
@@ -298,6 +346,15 @@ int main(void)
 				{
 					Opt_Two = 0;
 				}
+				Flash_Erase_SectorSeven();
+				Flash_Write(0x08060010, Opt_Two);
+				Save_Two = Flash_Read(0x08060010);
+				Flash_Write(0x08060030, Save_Four);
+				Flash_Write(0x08060020, Save_Three);
+				Flash_Write(0x08060000, Save_One);
+				Flash_Write(0x08060040, Save_Five);
+				Flash_Write(0x08060050, Save_Six);
+				Flash_Write(0x08060060, Save_Seven);
 			}
 			else if(Opt_Menu == 2)
 			{
@@ -307,17 +364,36 @@ int main(void)
 				{
 					Opt_Five = 0;
 				}
+				Flash_Erase_SectorSeven();
+				Flash_Write(0x08060040, Opt_Five);
+				Save_Five = Flash_Read(0x08060040);
+				Flash_Write(0x08060010, Save_Two);
+				Flash_Write(0x08060020, Save_Three);
+				Flash_Write(0x08060000, Save_One);
+				Flash_Write(0x08060030, Save_Four);
+				Flash_Write(0x08060050, Save_Six);
+				Flash_Write(0x08060060, Save_Seven);
 			}
 			break;
 		case '3':
 			if(Opt_Menu == 2)
 			{
 				Sp = 2;
+				Relay = 1;
 				Opt_Six++;
 				if(Opt_Six >= 2)
 				{
 					Opt_Six = 0;
 				}
+				Flash_Erase_SectorSeven();
+				Flash_Write(0x08060050, Opt_Six);
+				Save_Six = Flash_Read(0x08060050);
+				Flash_Write(0x08060010, Save_Two);
+				Flash_Write(0x08060020, Save_Three);
+				Flash_Write(0x08060000, Save_One);
+				Flash_Write(0x08060040, Save_Five);
+				Flash_Write(0x08060030, Save_Four);
+				Flash_Write(0x08060060, Save_Seven);
 			}
 			break;
 		case '4':
@@ -329,70 +405,97 @@ int main(void)
 				{
 					Opt_Three = 0;
 				}
+				Flash_Erase_SectorSeven();
+				Flash_Write(0x08060020, Opt_Three);
+				Save_Three = Flash_Read(0x08060020);
+				Flash_Write(0x08060010, Save_Two);
+				Flash_Write(0x08060030, Save_Four);
+				Flash_Write(0x08060000, Save_One);
+				Flash_Write(0x08060040, Save_Five);
+				Flash_Write(0x08060050, Save_Six);
+				Flash_Write(0x08060060, Save_Seven);
 			}
 			else if(Opt_Menu == 2)
 			{
 				Sp = 2;
 				Opt_Seven++;
+				Relay = 2;
 				if(Opt_Seven >= 2)
 				{
 					Opt_Seven = 0;
 				}
+				Flash_Erase_SectorSeven();
+				Flash_Write(0x08060060, Opt_Seven);
+				Save_Seven = Flash_Read(0x08060060);
+				Flash_Write(0x08060010, Save_Two);
+				Flash_Write(0x08060020, Save_Three);
+				Flash_Write(0x08060000, Save_One);
+				Flash_Write(0x08060040, Save_Five);
+				Flash_Write(0x08060050, Save_Six);
+				Flash_Write(0x08060030, Save_Four);
 			}
 			break;
 		}
-		RemountSD();
 
-		if(PowerSwitch_12V == 1)
+		/* Power switch keuze voor poort 1 */
+		if(Save_Four == 0)
 		{
-			PowerSwitch_12V = 0;
-			if(Switch_12V == 1)
-			{
-				GPIOA -> ODR |= GPIO_PIN_1;
-			}
-			else if(Switch_12V == 2)
-			{
-				GPIOA -> ODR |= GPIO_PIN_0;
-			}
-			else if(Switch_12V == 3)
-			{
-				GPIOA -> ODR |= GPIO_PIN_1;
-				GPIOA -> ODR |= GPIO_PIN_0;
-			}
+			GPIOA -> ODR &= ~GPIO_PIN_1;
+		}
+		else if(Save_Four == 1)
+		{
+			GPIOA -> ODR |= GPIO_PIN_1;
+		}
+		/* Power switch keuze voor poort 2 */
+		if(Save_Five == 0)
+		{
+			GPIOA -> ODR &= ~GPIO_PIN_0;
+		}
+		else if(Save_Five == 1)
+		{
+			GPIOA -> ODR |= GPIO_PIN_0;
 		}
 
-		if(PowerSwitch_Relay == 1)
+		if(Relay == 1)
 		{
-			PowerSwitch_Relay = 0;
-			if(Switch_Relay == 1)
+			Relay = 0;
+			/* Poort 1 relay switch keuze */
+			if(Save_Six == 0)
 			{
-				GPIOC -> ODR |= GPIO_PIN_1;
-				HAL_Delay(5);
-				GPIOC -> ODR &= ~GPIO_PIN_1;
-				//Relay reset
+				//Relay Reset
 				GPIOC -> ODR |= GPIO_PIN_2;
 				HAL_Delay(5);
 				GPIOC -> ODR &= ~GPIO_PIN_2;
 			}
-			else if(Switch_Relay == 2)
+			else if(Save_Six == 1)
 			{
-				GPIOC -> ODR |= GPIO_PIN_0;
+				//Relay set
+				GPIOC -> ODR |= GPIO_PIN_1;
 				HAL_Delay(5);
-				GPIOC -> ODR &= ~GPIO_PIN_0;
-				//Relay reset
+				GPIOC -> ODR &= ~GPIO_PIN_1;
+			}
+		}
+		else if(Relay == 2)
+		{
+			Relay = 0;
+			/* Poort 2 relay switch keuze */
+			if(Save_Seven == 0)
+			{
+				//Relay Reset
 				GPIOC -> ODR |= GPIO_PIN_4;
 				HAL_Delay(5);
 				GPIOC -> ODR &= ~GPIO_PIN_4;
 			}
-			else if(Switch_Relay == 3)
+			else if(Save_Seven == 1)
 			{
-				GPIOC -> ODR |= GPIO_PIN_1;
+				//Relay set
 				GPIOC -> ODR |= GPIO_PIN_0;
 				HAL_Delay(5);
-				GPIOC -> ODR &= ~GPIO_PIN_1;
 				GPIOC -> ODR &= ~GPIO_PIN_0;
 			}
 		}
+
+		RemountSD();
 
 		if(Timer == 1 && Timer2 == 0) //Internal meusurement
 		{
@@ -401,14 +504,14 @@ int main(void)
 		}
 		else if(Timer == 2)//external meusurement
 		{
-			if(RS_Choice == 1)
+			if(Save_One == 1)
 			{
-				SaveRS(FileName_Measure, RS_Poort, Sensor_RS);
+				SaveRS(FileName_Measure, Save_Two, 2);
 			}
 
-			if(SDi == 1)
+			if(Save_Three == 1)
 			{
-				SaveSDi(FileName_Measure, Sensor_SDi);
+				SaveSDi(FileName_Measure, 1);
 			}
 
 			Timer = 0;
@@ -514,21 +617,6 @@ void GPIO_Reset(void)
 	GPIOB -> ODR |= GPIO_PIN_0;
 	//Protocol tranceiver aan (Nu een Userinterface in RS232 mode)
 	GPIOB -> ODR |= GPIO_PIN_12;
-}
-
-void Start_Up(void)
-{
-	uint8_t RS232 = 1;
-	WriteRS(1, "Sluit eerst alles aan op de datalogger en druk dan op enter\r\n");
-	do
-	{
-		EmptyBuffer();
-		ReadRS(RS232, 1, 1);
-	}while(rxData[0] != '\r');
-	HAL_FLASH_Unlock();
-	FLASH_Erase_Sector(FLASH_SECTOR_7, VOLTAGE_RANGE_3);
-	HAL_FLASH_Lock();
-	EmptyBuffer();
 }
 
 uint8_t Create_File_Func(void)
@@ -803,9 +891,6 @@ void SaveRS(char FileName[], uint8_t RS, uint8_t Sensor)
 
 	HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 	HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
-	HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR0, sTime.Hours);
-	HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, sTime.Minutes);
-	HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR2, sTime.Seconds);
 
 	ToggleRGB('G', 0);
 
@@ -893,7 +978,6 @@ void SaveSDi(char FileName[], uint8_t Sensor)
 
 	EmptyBuffer();
 	ReadSDi(100);
-	WriteRS(1, rxData);
 
 	GPIOB -> ODR |= GPIO_PIN_10;
 
@@ -906,16 +990,11 @@ void SaveSDi(char FileName[], uint8_t Sensor)
 
 	EmptyBuffer();
 	ReadSDi(300);
-	WriteRS(1, rxData);
 
 	HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 	HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
-	HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR0, sTime.Hours);
-	HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, sTime.Minutes);
-	HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR2, sTime.Seconds);
 
 	ToggleRGB('G', 0);
-
 
 	if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
 	{
@@ -1261,6 +1340,13 @@ uint32_t Flash_Read(uint32_t Flash_Address)
 	Flash_Data = *(uint32_t*) Flash_Address;
 
 	return Flash_Data;
+}
+
+void Flash_Erase_SectorSeven(void)
+{
+	HAL_FLASH_Unlock();
+	FLASH_Erase_Sector(FLASH_SECTOR_7, VOLTAGE_RANGE_3);
+	HAL_FLASH_Lock();
 }
 
 /* USER CODE END 4 */
