@@ -104,19 +104,21 @@ void Flash_Erase_SectorSeven(void);
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
+ * @brief  The application entry point.
+ * @retval int
+ */
 int main(void)
 {
-  /* USER CODE BEGIN 1 */
+	/* USER CODE BEGIN 1 */
 	uint8_t Timer2 = 0;
 
 	char Poort_Switch[2][10] = {" CLOSED",
-			                    " OPEN  "};
+			" OPEN  "};
 	char Poort_Protocol_RS[3][10] = {" RS232 ",
-			                         " RS422 ",
-			                         " RS485 "};
+			" RS422 ",
+			" RS485 "};
+	char Sleep_Mode[2][10] = {" OFF  ",
+			" ON "};
 	uint8_t MM = 0; //Main Menu optie
 	uint8_t Sp = 0;
 	uint8_t Opt_Menu = 0; //Onthouden welke menu de gebruiker in zit
@@ -128,39 +130,40 @@ int main(void)
 	uint8_t Save_Five = 0;//Open/Closed Power switch poort 2 optie
 	uint8_t Save_Six = 0;//Open/Closed Relay poort 1 optie
 	uint8_t Save_Seven = 0;//Open/Closed Relay poort 2 optie
+	uint8_t Save_Eight = 0;
 	uint8_t Display = 0;
 	uint8_t Relay = 0;
-  /* USER CODE END 1 */
-  
+	/* USER CODE END 1 */
 
-  /* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	/* MCU Configuration--------------------------------------------------------*/
 
-  /* USER CODE BEGIN Init */
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
 
-  /* USER CODE END Init */
+	/* USER CODE BEGIN Init */
 
-  /* Configure the system clock */
-  SystemClock_Config();
+	/* USER CODE END Init */
 
-  /* USER CODE BEGIN SysInit */
+	/* Configure the system clock */
+	SystemClock_Config();
 
-  /* USER CODE END SysInit */
+	/* USER CODE BEGIN SysInit */
 
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_I2C1_Init();
-  MX_RTC_Init();
-  MX_SDIO_SD_Init();
-  MX_USART1_UART_Init();
-  MX_USART2_UART_Init();
-  MX_USART6_UART_Init();
-  MX_FATFS_Init();
-  MX_DMA_Init();
-  MX_TIM2_Init();
-  /* USER CODE BEGIN 2 */
+	/* USER CODE END SysInit */
+
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_I2C1_Init();
+	MX_RTC_Init();
+	MX_SDIO_SD_Init();
+	MX_USART1_UART_Init();
+	MX_USART2_UART_Init();
+	MX_USART6_UART_Init();
+	MX_FATFS_Init();
+	MX_DMA_Init();
+	MX_TIM2_Init();
+	/* USER CODE BEGIN 2 */
 	//Reset GPIO pinnen
 	GPIO_Reset();
 	LED = 1;
@@ -175,6 +178,7 @@ int main(void)
 	Save_Five = Flash_Read(0x08060040);
 	Save_Six = Flash_Read(0x08060050);
 	Save_Seven = Flash_Read(0x08060060);
+	Save_Eight = Flash_Read(0x08060070);
 
 	HAL_PWR_EnableBkUpAccess();
 	sTime.Seconds = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR0);
@@ -190,15 +194,15 @@ int main(void)
 	WriteRS(1, "\x1b[1J"); //Clear screen
 	WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
 
-  /* USER CODE END 2 */
+	/* USER CODE END 2 */
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
-    /* USER CODE END WHILE */
+		/* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
+		/* USER CODE BEGIN 3 */
 		ToggleRGB('R', 0);
 		EmptyBuffer();
 		ReadRS(1, 1, 5);
@@ -223,13 +227,14 @@ int main(void)
 					Save_One = 0;
 				}
 				Flash_Erase_SectorSeven();
-				Flash_Write(0x08060000, Save_One);
-				Flash_Write(0x08060010, Save_Two);
 				Flash_Write(0x08060020, Save_Three);
+				Flash_Write(0x08060010, Save_Two);
 				Flash_Write(0x08060030, Save_Four);
+				Flash_Write(0x08060000, Save_One);
 				Flash_Write(0x08060040, Save_Five);
 				Flash_Write(0x08060050, Save_Six);
 				Flash_Write(0x08060060, Save_Seven);
+				Flash_Write(0x08060070, Save_Eight);
 			}
 			else if(Opt_Menu == 2)
 			{
@@ -240,13 +245,14 @@ int main(void)
 					Save_Four = 0;
 				}
 				Flash_Erase_SectorSeven();
-				Flash_Write(0x08060030, Save_Four);
-				Flash_Write(0x08060010, Save_Two);
 				Flash_Write(0x08060020, Save_Three);
+				Flash_Write(0x08060010, Save_Two);
+				Flash_Write(0x08060030, Save_Four);
 				Flash_Write(0x08060000, Save_One);
 				Flash_Write(0x08060040, Save_Five);
 				Flash_Write(0x08060050, Save_Six);
 				Flash_Write(0x08060060, Save_Seven);
+				Flash_Write(0x08060070, Save_Eight);
 			}
 			break;
 		case '2':
@@ -263,13 +269,14 @@ int main(void)
 					Save_Two = 0;
 				}
 				Flash_Erase_SectorSeven();
+				Flash_Write(0x08060020, Save_Three);
 				Flash_Write(0x08060010, Save_Two);
 				Flash_Write(0x08060030, Save_Four);
-				Flash_Write(0x08060020, Save_Three);
 				Flash_Write(0x08060000, Save_One);
 				Flash_Write(0x08060040, Save_Five);
 				Flash_Write(0x08060050, Save_Six);
 				Flash_Write(0x08060060, Save_Seven);
+				Flash_Write(0x08060070, Save_Eight);
 			}
 			else if(Opt_Menu == 2)
 			{
@@ -280,13 +287,14 @@ int main(void)
 					Save_Five = 0;
 				}
 				Flash_Erase_SectorSeven();
-				Flash_Write(0x08060040, Save_Five);
-				Flash_Write(0x08060010, Save_Two);
 				Flash_Write(0x08060020, Save_Three);
-				Flash_Write(0x08060000, Save_One);
+				Flash_Write(0x08060010, Save_Two);
 				Flash_Write(0x08060030, Save_Four);
+				Flash_Write(0x08060000, Save_One);
+				Flash_Write(0x08060040, Save_Five);
 				Flash_Write(0x08060050, Save_Six);
 				Flash_Write(0x08060060, Save_Seven);
+				Flash_Write(0x08060070, Save_Eight);
 			}
 			break;
 		case '3':
@@ -304,13 +312,14 @@ int main(void)
 					Save_Six = 0;
 				}
 				Flash_Erase_SectorSeven();
-				Flash_Write(0x08060050, Save_Six);
-				Flash_Write(0x08060010, Save_Two);
 				Flash_Write(0x08060020, Save_Three);
+				Flash_Write(0x08060010, Save_Two);
+				Flash_Write(0x08060030, Save_Four);
 				Flash_Write(0x08060000, Save_One);
 				Flash_Write(0x08060040, Save_Five);
-				Flash_Write(0x08060030, Save_Four);
+				Flash_Write(0x08060050, Save_Six);
 				Flash_Write(0x08060060, Save_Seven);
+				Flash_Write(0x08060070, Save_Eight);
 			}
 			break;
 		case '4':
@@ -334,6 +343,7 @@ int main(void)
 				Flash_Write(0x08060040, Save_Five);
 				Flash_Write(0x08060050, Save_Six);
 				Flash_Write(0x08060060, Save_Seven);
+				Flash_Write(0x08060070, Save_Eight);
 			}
 			else if(Opt_Menu == 2)
 			{
@@ -345,13 +355,14 @@ int main(void)
 					Save_Seven = 0;
 				}
 				Flash_Erase_SectorSeven();
-				Flash_Write(0x08060060, Save_Seven);
-				Flash_Write(0x08060010, Save_Two);
 				Flash_Write(0x08060020, Save_Three);
+				Flash_Write(0x08060010, Save_Two);
+				Flash_Write(0x08060030, Save_Four);
 				Flash_Write(0x08060000, Save_One);
 				Flash_Write(0x08060040, Save_Five);
 				Flash_Write(0x08060050, Save_Six);
-				Flash_Write(0x08060030, Save_Four);
+				Flash_Write(0x08060060, Save_Seven);
+				Flash_Write(0x08060070, Save_Eight);
 			}
 			break;
 		case '5':
@@ -360,6 +371,35 @@ int main(void)
 				Display = 1;
 				Sp = 5;
 			}
+			break;
+		case '6':
+			if(Opt_Menu == 0)
+			{
+				MM = 0;
+				Save_Eight++;
+				if(Save_Eight >= 2)
+				{
+					Save_Eight = 0;
+				}
+				if(Save_Eight == 0)
+				{
+					GPIOB -> ODR |= GPIO_PIN_0;
+				}
+				else if(Save_Eight == 1)
+				{
+					GPIOB -> ODR &= ~GPIO_PIN_0;
+				}
+				Flash_Erase_SectorSeven();
+				Flash_Write(0x08060020, Save_Three);
+				Flash_Write(0x08060010, Save_Two);
+				Flash_Write(0x08060030, Save_Four);
+				Flash_Write(0x08060000, Save_One);
+				Flash_Write(0x08060040, Save_Five);
+				Flash_Write(0x08060050, Save_Six);
+				Flash_Write(0x08060060, Save_Seven);
+				Flash_Write(0x08060070, Save_Eight);
+			}
+			break;
 		}
 
 		/* Terminal Menu */
@@ -374,6 +414,13 @@ int main(void)
 			WriteRS(1, "3) RTC\r\n");
 			WriteRS(1, "4) Verwijder inhoud micro-SD\r\n");
 			WriteRS(1, "5) Display gemeten waardes\r\n");
+			WriteRS(1, "6) Sleep Mode:");
+			if(Save_Eight >= 5)
+			{
+				Save_Eight = 0;
+			}
+			WriteRS(1, Sleep_Mode[Save_Eight]);
+			WriteRS(1, "\r\n");
 			MM = 1;
 		}
 		if(Sp == 1) // Seriele poort optie menu
@@ -581,60 +628,60 @@ int main(void)
 		HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR5, sDate.Month);
 		HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR6, sDate.Year);
 	}
-  /* USER CODE END 3 */
+	/* USER CODE END 3 */
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
+ * @brief System Clock Configuration
+ * @retval None
+ */
 void SystemClock_Config(void)
 {
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+	RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+	RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+	RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
-  /** Configure the main internal regulator output voltage 
-  */
-  __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
-  /** Initializes the CPU, AHB and APB busses clocks 
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 4;
-  RCC_OscInitStruct.PLL.PLLN = 100;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
-  RCC_OscInitStruct.PLL.PLLQ = 5;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Initializes the CPU, AHB and APB busses clocks 
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+	/** Configure the main internal regulator output voltage
+	 */
+	__HAL_RCC_PWR_CLK_ENABLE();
+	__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
+	/** Initializes the CPU, AHB and APB busses clocks
+	 */
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
+	RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+	RCC_OscInitStruct.LSIState = RCC_LSI_ON;
+	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+	RCC_OscInitStruct.PLL.PLLM = 4;
+	RCC_OscInitStruct.PLL.PLLN = 100;
+	RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
+	RCC_OscInitStruct.PLL.PLLQ = 5;
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	/** Initializes the CPU, AHB and APB busses clocks
+	 */
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+			|RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC;
-  PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Enables the Clock Security System 
-  */
-  HAL_RCC_EnableCSS();
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC;
+	PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
+	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	/** Enables the Clock Security System
+	 */
+	HAL_RCC_EnableCSS();
 }
 
 /* USER CODE BEGIN 4 */
@@ -654,15 +701,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	Timer++;
 }
 
-void MeasureLogInternal(uint8_t Terminal)
-{
-	HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
-	HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
-	SaveRH(FileName_Internal, Terminal);
-	HAL_Delay(10);
-	SaveT(FileName_Internal, Terminal);
-}
-
 void GPIO_Reset(void)
 {
 	//RGB uit
@@ -674,6 +712,16 @@ void GPIO_Reset(void)
 	//Protocol tranceiver aan (Nu een Userinterface in RS232 mode)
 	GPIOB -> ODR |= GPIO_PIN_12;
 }
+
+void MeasureLogInternal(uint8_t Terminal)
+{
+	HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+	HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+	SaveRH(FileName_Internal, Terminal);
+	HAL_Delay(10);
+	SaveT(FileName_Internal, Terminal);
+}
+
 
 void ToggleRGB(char Colour, int Mode)
 {
@@ -1343,31 +1391,31 @@ void Flash_Erase_SectorSeven(void)
 /* USER CODE END 4 */
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
 void Error_Handler(void)
 {
-  /* USER CODE BEGIN Error_Handler_Debug */
+	/* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 
-  /* USER CODE END Error_Handler_Debug */
+	/* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
 void assert_failed(uint8_t *file, uint32_t line)
 { 
-  /* USER CODE BEGIN 6 */
+	/* USER CODE BEGIN 6 */
 	/* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
+	/* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
 
