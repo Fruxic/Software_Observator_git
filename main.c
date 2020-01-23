@@ -75,15 +75,15 @@ void SystemClock_Config(void);
 void ToggleRGB(char Colour, int Mode);
 void ToggleRelay(int Relay, int Toggle);
 void TogglePower(int side, int Toggle);
-void MeasureLogInternal(void);
+void MeasureLogInternal(uint8_t Terminal);
 uint8_t MeasureRH(void);
 uint8_t MeasureT(void);
 void CreateFile(char FileName[]);
 void CreateFileNew(char FileName[]);
-void SaveRH(char FileName[]);
-void SaveT(char FileName[]);
-void SaveRS(char FileName[], uint8_t RS, uint8_t Sensor);
-void SaveSDi(char FileName[], uint8_t Sensor);
+void SaveRH(char FileName[], uint8_t Terminal);
+void SaveT(char FileName[], uint8_t Terminal);
+void SaveRS(char FileName[], uint8_t RS, uint8_t Sensor, uint8_t Terminal);
+void SaveSDi(char FileName[], uint8_t Sensor, uint8_t Terminal);
 void WriteRS(uint8_t port, char Message[]);
 void ReadRS(uint8_t RS, uint8_t port, uint16_t TimeOut);
 void WriteSDi(char Message[], uint16_t TimeOut);
@@ -109,7 +109,7 @@ void Flash_Erase_SectorSeven(void);
   */
 int main(void)
 {
-	/* USER CODE BEGIN 1 */
+  /* USER CODE BEGIN 1 */
 	uint8_t Timer2 = 0;
 
 	char Poort_Switch[2][10] = {" CLOSED",
@@ -120,62 +120,50 @@ int main(void)
 	uint8_t MM = 0; //Main Menu optie
 	uint8_t Sp = 0;
 	uint8_t Opt_Menu = 0; //Onthouden welke menu de gebruiker in zit
-	uint8_t Opt_One = 0; //Open/Closed Seriele poort optie
-	uint8_t Save_One = 0;
-	uint8_t Opt_Two = 0; //RS-232/RS-422/RS-485 Seriele poort optie
-	uint8_t Save_Two = 0;
-	uint8_t Opt_Three = 0; //Open/Closed SDi-12 poort optie
-	uint8_t Save_Three = 0;
-	uint8_t Opt_Four = 0; //Open/Closed Power switch poort 1 optie
-	uint8_t Save_Four = 0;
-	uint8_t Opt_Five = 0; //Open/Closed Power switch poort 2 optie
-	uint8_t Save_Five = 0;
-	uint8_t Opt_Six = 0; //Open/Closed Relay poort 1 optie
-	uint8_t Save_Six = 0;
-	uint8_t Opt_Seven = 0; //Open/Closed Relay poort 2 optie
-	uint8_t Save_Seven = 0;
+
+	uint8_t Save_One = 0;//Open/Closed Seriele poort optie
+	uint8_t Save_Two = 0;//RS-232/RS-422/RS-485 Seriele poort optie
+	uint8_t Save_Three = 0;//Open/Closed SDi-12 poort optie
+	uint8_t Save_Four = 0;//Open/Closed Power switch poort 1 optie
+	uint8_t Save_Five = 0;//Open/Closed Power switch poort 2 optie
+	uint8_t Save_Six = 0;//Open/Closed Relay poort 1 optie
+	uint8_t Save_Seven = 0;//Open/Closed Relay poort 2 optie
+	uint8_t Display = 0;
 	uint8_t Relay = 0;
-	/* USER CODE END 1 */
+  /* USER CODE END 1 */
+  
 
+  /* MCU Configuration--------------------------------------------------------*/
 
-	/* MCU Configuration--------------------------------------------------------*/
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
-	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-	HAL_Init();
+  /* USER CODE BEGIN Init */
 
-	/* USER CODE BEGIN Init */
+  /* USER CODE END Init */
 
-	/* USER CODE END Init */
+  /* Configure the system clock */
+  SystemClock_Config();
 
-	/* Configure the system clock */
-	SystemClock_Config();
+  /* USER CODE BEGIN SysInit */
 
-	/* USER CODE BEGIN SysInit */
+  /* USER CODE END SysInit */
 
-	/* USER CODE END SysInit */
-
-	/* Initialize all configured peripherals */
-	MX_GPIO_Init();
-	MX_I2C1_Init();
-	MX_RTC_Init();
-	MX_SDIO_SD_Init();
-	MX_USART1_UART_Init();
-	MX_USART2_UART_Init();
-	MX_USART6_UART_Init();
-	MX_FATFS_Init();
-	MX_DMA_Init();
-	MX_TIM2_Init();
-	/* USER CODE BEGIN 2 */
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_I2C1_Init();
+  MX_RTC_Init();
+  MX_SDIO_SD_Init();
+  MX_USART1_UART_Init();
+  MX_USART2_UART_Init();
+  MX_USART6_UART_Init();
+  MX_FATFS_Init();
+  MX_DMA_Init();
+  MX_TIM2_Init();
+  /* USER CODE BEGIN 2 */
 	//Reset GPIO pinnen
 	GPIO_Reset();
 	LED = 1;
-
-	sDate.Date = 7;
-	sDate.Month = RTC_MONTH_JANUARY;
-	sDate.WeekDay = RTC_WEEKDAY_TUESDAY;
-	sDate.Year = 20;
-	HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
-	HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 
 	HAL_TIM_Base_Start_IT(&htim2);
 	Timer = 0; //Timer reset.
@@ -188,133 +176,38 @@ int main(void)
 	Save_Six = Flash_Read(0x08060050);
 	Save_Seven = Flash_Read(0x08060060);
 
+	HAL_PWR_EnableBkUpAccess();
+	sTime.Seconds = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR0);
+	sTime.Minutes = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1);
+	sTime.Hours = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR2);
+	sDate.Date = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR3);
+	sDate.WeekDay = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR4);
+	sDate.Month = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR5);
+	sDate.Year = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR6);
+	HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+	HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+
 	WriteRS(1, "\x1b[1J"); //Clear screen
 	WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
 
-	/* USER CODE END 2 */
+  /* USER CODE END 2 */
 
-	/* Infinite loop */
-	/* USER CODE BEGIN WHILE */
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
 	while (1)
 	{
-		/* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
-		/* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
 		ToggleRGB('R', 0);
 		EmptyBuffer();
 		ReadRS(1, 1, 5);
-
-		/* Terminal Menu */
-		if(MM == 0) //Main Menu
-		{
-			Opt_Menu = 0;
-			WriteRS(1, "\x1b[2J"); //Clear screen
-			WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
-			WriteRS(1, "MENU\r\n");
-			WriteRS(1, "1) Seriele Poorten\r\n");
-			WriteRS(1, "2) Sensor Voeding switch\r\n");
-			WriteRS(1, "3) RTC\r\n");
-			WriteRS(1, "4) Verwijder inhoud micro-SD\r\n");
-			MM = 1;
-		}
-		if(Sp == 1) // Seriele poort optie menu
-		{
-			Opt_Menu = 1;
-			WriteRS(1, "\x1b[2J"); //Clear screen
-			WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
-			WriteRS(1, "Seriele Poort\r\n");
-			WriteRS(1, "   1)");
-			if(Save_One >= 100)
-			{
-				Save_One = 0;
-			}
-			WriteRS(1, Poort_Switch[Save_One]);
-			WriteRS(1, "\r\n");
-			WriteRS(1, "   2)");
-			if(Save_Two >= 100)
-			{
-				Save_Two = 0;
-			}
-			WriteRS(1, Poort_Protocol_RS[Save_Two]);
-			WriteRS(1, "\r\n");
-			WriteRS(1, "   3) OMC-160-3\r\n");
-			WriteRS(1, "SDi-12\r\n");
-			WriteRS(1, "   4)");
-			if(Save_Three >= 100)
-			{
-				Save_Three = 0;
-			}
-			WriteRS(1, Poort_Switch[Save_Three]);
-			WriteRS(1, "\r\n");
-			WriteRS(1, "   5) PT12\r\n");
-			WriteRS(1, "Druk Backspace om terug te gaan naar het hoofd menu\r\n");
-			Sp = 0;
-		}
-		else if(Sp == 2) // Power Switch optie Menu
-		{
-			Opt_Menu = 2;
-			WriteRS(1, "\x1b[2J"); //Clear screen
-			WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
-			WriteRS(1, "Power Switch\r\n");
-			WriteRS(1, "   1) Poort 1:");
-			if(Save_Four >= 100)
-			{
-				Save_Four = 0;
-			}
-			WriteRS(1, Poort_Switch[Save_Four]);
-			WriteRS(1, "\r\n");
-			WriteRS(1, "   2) Poort 2:");
-			if(Save_Five >= 100)
-			{
-				Save_Five = 0;
-			}
-			WriteRS(1, Poort_Switch[Save_Five]);
-			WriteRS(1, "\r\n");
-			WriteRS(1, "Relay Switch\r\n");
-			WriteRS(1, "   3) Poort 1:");
-			if(Save_Six >= 100)
-			{
-				Save_Six = 0;
-			}
-			WriteRS(1, Poort_Switch[Save_Six]);
-			WriteRS(1, "\r\n");
-			WriteRS(1, "   4) Poort 2:");
-			if(Save_Seven >= 100)
-			{
-				Save_Seven = 0;
-			}
-			WriteRS(1, Poort_Switch[Save_Seven]);
-			WriteRS(1, "\r\n");
-			WriteRS(1, "Druk Backspace om terug te gaan naar het hoofd menu\r\n");
-			Sp = 0;
-		}
-		else if(Sp == 3)
-		{
-			LED = 0;
-			WriteRS(1, "\x1b[1J"); //Clear screen
-			WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
-			SetTime();
-			HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
-			Sp = 0;
-			MM = 0;
-			LED = 1;
-		}
-		else if(Sp == 4)
-		{
-			WriteRS(1, "\x1b[1J"); //Clear screen
-			WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
-			CreateFileNew(FileName_Internal);
-			CreateFileNew(FileName_Measure);
-			WriteRS(1, "Done!");
-			HAL_Delay(500);
-			Sp = 0;
-			MM = 0;
-		}
 
 		switch(rxData[0])
 		{
 		case 8:
 			MM = 0;
+			Display = 0;
 			break;
 		case '1':
 			if(Opt_Menu == 0)
@@ -324,15 +217,13 @@ int main(void)
 			else if(Opt_Menu == 1)
 			{
 				Sp = 1;
-				Opt_One = Save_One;
-				Opt_One++;
-				if(Opt_One >= 2)
+				Save_One++;
+				if(Save_One >= 2)
 				{
-					Opt_One = 0;
+					Save_One = 0;
 				}
 				Flash_Erase_SectorSeven();
-				Flash_Write(0x08060000, Opt_One);
-				Save_One = Flash_Read(0x08060000);
+				Flash_Write(0x08060000, Save_One);
 				Flash_Write(0x08060010, Save_Two);
 				Flash_Write(0x08060020, Save_Three);
 				Flash_Write(0x08060030, Save_Four);
@@ -343,15 +234,13 @@ int main(void)
 			else if(Opt_Menu == 2)
 			{
 				Sp = 2;
-				Opt_Four = Save_Four;
-				Opt_Four++;
-				if(Opt_Four >= 2)
+				Save_Four++;
+				if(Save_Four >= 2)
 				{
-					Opt_Four = 0;
+					Save_Four = 0;
 				}
 				Flash_Erase_SectorSeven();
-				Flash_Write(0x08060030, Opt_Four);
-				Save_Four = Flash_Read(0x08060030);
+				Flash_Write(0x08060030, Save_Four);
 				Flash_Write(0x08060010, Save_Two);
 				Flash_Write(0x08060020, Save_Three);
 				Flash_Write(0x08060000, Save_One);
@@ -368,15 +257,13 @@ int main(void)
 			else if(Opt_Menu == 1)
 			{
 				Sp = 1;
-				Opt_Two = Save_Two;
-				Opt_Two++;
-				if(Opt_Two >= 3)
+				Save_Two++;
+				if(Save_Two >= 3)
 				{
-					Opt_Two = 0;
+					Save_Two = 0;
 				}
 				Flash_Erase_SectorSeven();
-				Flash_Write(0x08060010, Opt_Two);
-				Save_Two = Flash_Read(0x08060010);
+				Flash_Write(0x08060010, Save_Two);
 				Flash_Write(0x08060030, Save_Four);
 				Flash_Write(0x08060020, Save_Three);
 				Flash_Write(0x08060000, Save_One);
@@ -387,15 +274,13 @@ int main(void)
 			else if(Opt_Menu == 2)
 			{
 				Sp = 2;
-				Opt_Five = Save_Five;
-				Opt_Five++;
-				if(Opt_Five >= 2)
+				Save_Five++;
+				if(Save_Five >= 2)
 				{
-					Opt_Five = 0;
+					Save_Five = 0;
 				}
 				Flash_Erase_SectorSeven();
-				Flash_Write(0x08060040, Opt_Five);
-				Save_Five = Flash_Read(0x08060040);
+				Flash_Write(0x08060040, Save_Five);
 				Flash_Write(0x08060010, Save_Two);
 				Flash_Write(0x08060020, Save_Three);
 				Flash_Write(0x08060000, Save_One);
@@ -413,15 +298,13 @@ int main(void)
 			{
 				Sp = 2;
 				Relay = 1;
-				Opt_Six = Save_Six;
-				Opt_Six++;
-				if(Opt_Six >= 2)
+				Save_Six++;
+				if(Save_Six >= 2)
 				{
-					Opt_Six = 0;
+					Save_Six = 0;
 				}
 				Flash_Erase_SectorSeven();
-				Flash_Write(0x08060050, Opt_Six);
-				Save_Six = Flash_Read(0x08060050);
+				Flash_Write(0x08060050, Save_Six);
 				Flash_Write(0x08060010, Save_Two);
 				Flash_Write(0x08060020, Save_Three);
 				Flash_Write(0x08060000, Save_One);
@@ -438,15 +321,13 @@ int main(void)
 			else if(Opt_Menu == 1)
 			{
 				Sp = 1;
-				Opt_Three = Save_Three;
-				Opt_Three++;
-				if(Opt_Three >= 2)
+				Save_Three++;
+				if(Save_Three >= 2)
 				{
-					Opt_Three = 0;
+					Save_Three = 0;
 				}
 				Flash_Erase_SectorSeven();
-				Flash_Write(0x08060020, Opt_Three);
-				Save_Three = Flash_Read(0x08060020);
+				Flash_Write(0x08060020, Save_Three);
 				Flash_Write(0x08060010, Save_Two);
 				Flash_Write(0x08060030, Save_Four);
 				Flash_Write(0x08060000, Save_One);
@@ -457,16 +338,14 @@ int main(void)
 			else if(Opt_Menu == 2)
 			{
 				Sp = 2;
-				Opt_Seven = Save_Seven;
-				Opt_Seven++;
+				Save_Seven++;
 				Relay = 2;
-				if(Opt_Seven >= 2)
+				if(Save_Seven >= 2)
 				{
-					Opt_Seven = 0;
+					Save_Seven = 0;
 				}
 				Flash_Erase_SectorSeven();
-				Flash_Write(0x08060060, Opt_Seven);
-				Save_Seven = Flash_Read(0x08060060);
+				Flash_Write(0x08060060, Save_Seven);
 				Flash_Write(0x08060010, Save_Two);
 				Flash_Write(0x08060020, Save_Three);
 				Flash_Write(0x08060000, Save_One);
@@ -475,6 +354,135 @@ int main(void)
 				Flash_Write(0x08060030, Save_Four);
 			}
 			break;
+		case '5':
+			if(Opt_Menu == 0)
+			{
+				Display = 1;
+				Sp = 5;
+			}
+		}
+
+		/* Terminal Menu */
+		if(MM == 0) //Main Menu
+		{
+			Opt_Menu = 0;
+			WriteRS(1, "\x1b[1J"); //Clear screen
+			WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
+			WriteRS(1, "MENU\r\n");
+			WriteRS(1, "1) Seriele Poorten\r\n");
+			WriteRS(1, "2) Sensor Voeding switch\r\n");
+			WriteRS(1, "3) RTC\r\n");
+			WriteRS(1, "4) Verwijder inhoud micro-SD\r\n");
+			WriteRS(1, "5) Display gemeten waardes\r\n");
+			MM = 1;
+		}
+		if(Sp == 1) // Seriele poort optie menu
+		{
+			Opt_Menu = 1;
+			WriteRS(1, "\x1b[1J"); //Clear screen
+			WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
+			WriteRS(1, "Seriele Poort\r\n");
+			WriteRS(1, "   1)");
+			if(Save_One >= 5)
+			{
+				Save_One = 0;
+			}
+			WriteRS(1, Poort_Switch[Save_One]);
+			WriteRS(1, "\r\n");
+			WriteRS(1, "   2)");
+			if(Save_Two >= 5)
+			{
+				Save_Two = 0;
+			}
+			WriteRS(1, Poort_Protocol_RS[Save_Two]);
+			WriteRS(1, "\r\n");
+			WriteRS(1, "   3) OMC-160-3\r\n");
+			WriteRS(1, "SDi-12\r\n");
+			WriteRS(1, "   4)");
+			if(Save_Three >= 5)
+			{
+				Save_Three = 0;
+			}
+			WriteRS(1, Poort_Switch[Save_Three]);
+			WriteRS(1, "\r\n");
+			WriteRS(1, "   5) PT12\r\n");
+			WriteRS(1, "Druk Backspace om terug te gaan naar het hoofd menu\r\n");
+			Sp = 0;
+		}
+		else if(Sp == 2) // Power Switch optie Menu
+		{
+			Opt_Menu = 2;
+			WriteRS(1, "\x1b[1J"); //Clear screen
+			WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
+			WriteRS(1, "Power Switch\r\n");
+			WriteRS(1, "   1) Poort 1:");
+			if(Save_Four >= 5)
+			{
+				Save_Four = 0;
+			}
+			WriteRS(1, Poort_Switch[Save_Four]);
+			WriteRS(1, "\r\n");
+			WriteRS(1, "   2) Poort 2:");
+			if(Save_Five >= 5)
+			{
+				Save_Five = 0;
+			}
+			WriteRS(1, Poort_Switch[Save_Five]);
+			WriteRS(1, "\r\n");
+			WriteRS(1, "Relay Switch\r\n");
+			WriteRS(1, "   3) Poort 1:");
+			if(Save_Six >= 5)
+			{
+				Save_Six = 0;
+			}
+			WriteRS(1, Poort_Switch[Save_Six]);
+			WriteRS(1, "\r\n");
+			WriteRS(1, "   4) Poort 2:");
+			if(Save_Seven >= 5)
+			{
+				Save_Seven = 0;
+			}
+			WriteRS(1, Poort_Switch[Save_Seven]);
+			WriteRS(1, "\r\n");
+			WriteRS(1, "Druk Backspace om terug te gaan naar het hoofd menu\r\n");
+			Sp = 0;
+		}
+		else if(Sp == 3)
+		{
+			LED = 0;
+			WriteRS(1, "\x1b[1J"); //Clear screen
+			WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
+			SetTime();
+			HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR0, sTime.Seconds);
+			HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, sTime.Minutes);
+			HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR2, sTime.Hours);
+			HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR3, sDate.Date);
+			HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR4, sDate.WeekDay);
+			HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR5, sDate.Month);
+			HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR6, sDate.Year);
+			HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+			HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+			Sp = 0;
+			MM = 0;
+			LED = 1;
+		}
+		else if(Sp == 4)
+		{
+			WriteRS(1, "\x1b[1J"); //Clear screen
+			WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
+			CreateFileNew(FileName_Internal);
+			CreateFileNew(FileName_Measure);
+			WriteRS(1, "Done!");
+			HAL_Delay(500);
+			Sp = 0;
+			MM = 0;
+		}
+		else if(Sp == 5)
+		{
+			WriteRS(1, "\x1b[1J"); //Clear screen
+			WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
+			WriteRS(1, "Druk Backspace om terug te gaan naar het hoofd menu\r\n");
+			Sp = 0;
 		}
 
 		/* Power switch keuze voor poort 1 */
@@ -539,19 +547,19 @@ int main(void)
 
 		if(Timer == 1 && Timer2 == 0) //Internal meusurement
 		{
-			MeasureLogInternal();
+			MeasureLogInternal(Display);
 			Timer2 = 1;
 		}
 		else if(Timer == 2)//external meusurement
 		{
 			if(Save_One == 1)
 			{
-				SaveRS(FileName_Measure, Save_Two, 2);
+				SaveRS(FileName_Measure, Save_Two, 2, Display);
 			}
 
 			if(Save_Three == 1)
 			{
-				SaveSDi(FileName_Measure, 1);
+				SaveSDi(FileName_Measure, 1, Display);
 			}
 
 			Timer = 0;
@@ -561,8 +569,19 @@ int main(void)
 		{
 			Timer = 0;
 		}
+
+
+		HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+		HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+		HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR0, sTime.Seconds);
+		HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, sTime.Minutes);
+		HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR2, sTime.Hours);
+		HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR3, sDate.Date);
+		HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR4, sDate.WeekDay);
+		HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR5, sDate.Month);
+		HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR6, sDate.Year);
 	}
-	/* USER CODE END 3 */
+  /* USER CODE END 3 */
 }
 
 /**
@@ -586,10 +605,10 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLM = 4;
   RCC_OscInitStruct.PLL.PLLN = 100;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 4;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
+  RCC_OscInitStruct.PLL.PLLQ = 5;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -635,16 +654,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	Timer++;
 }
 
-void MeasureLogInternal(void)
+void MeasureLogInternal(uint8_t Terminal)
 {
 	HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 	HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
-	HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR0, sTime.Hours);
-	HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, sTime.Minutes);
-	HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR2, sTime.Seconds);
-	SaveRH(FileName_Internal);
+	SaveRH(FileName_Internal, Terminal);
 	HAL_Delay(10);
-	SaveT(FileName_Internal);
+	SaveT(FileName_Internal, Terminal);
 }
 
 void GPIO_Reset(void)
@@ -767,98 +783,138 @@ uint8_t MeasureRH(void)
 	return rv;
 }
 
-void SaveRH(char FileName[])
+void SaveRH(char FileName[], uint8_t Terminal)
 {
-	char Tekst[] = "Interne RH:";
+	char Tekst[] = "Interne RH:\t";
 	char Tekst1[] = "%\r\n";
+
+	uint8_t h = MeasureRH();
+	char Data[2];
+	itoa(h, Data, 10);
+
+	if(Terminal == 1)
+	{
+		WriteRS(1, Tekst);
+		WriteRS(1, Data);
+		WriteRS(1, Tekst1);
+	}
+
 	if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
 	{
 		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 
-		f_write(&myFile, &Tekst, sizeof(Tekst), &testByte);
-		uint8_t h = MeasureRH();
-		char Data[2];
-		itoa(h, Data, 10);
+		f_write(&myFile, &Tekst, strlen(Tekst), &testByte);
 		ToggleRGB('R', 1);
-		f_write(&myFile, &Data, sizeof(Data), &testByte);
-		f_write(&myFile, &Tekst1, sizeof(Tekst1), &testByte);
+		f_write(&myFile, &Data, strlen(Data), &testByte);
+		f_write(&myFile, &Tekst1, strlen(Tekst1), &testByte);
 
 		f_close(&myFile);
 		ToggleRGB('R', 0);
 	}
 }
 
-void SaveT(char FileName[])
+void SaveT(char FileName[], uint8_t Terminal)
 {
-	char Tekst[] = "Interne T:";
-	char Tekst1[] = "Graden\r";
-	char Tekst2[] = "Tijd:";
+	char Tekst[] = "Interne T:\t";
+	char Tekst1[] = "Graden\r\n";
+	char Tekst2[] = "Tijd:\t";
 	char Tekst3[] = "\r\n";
 	char Tekst4[] = ":";
+
+	uint8_t t = MeasureT();
+	char Data[2];
+	itoa(t, Data, 10);
+
+	if(Terminal == 1)
+	{
+		WriteRS(1, Tekst);
+		WriteRS(1, Data);
+		WriteRS(1, Tekst1);
+	}
+
 	if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
 	{
 		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 
-		f_write(&myFile, &Tekst, sizeof(Tekst), &testByte);
-		uint8_t t = MeasureT();
-		char Data[2];
-		itoa(t, Data, 10);
+		f_write(&myFile, &Tekst, strlen(Tekst), &testByte);
 		ToggleRGB('R', 1);
-		f_write(&myFile, &Data, sizeof(Data), &testByte);
-		f_write(&myFile, &Tekst1, sizeof(Tekst1), &testByte);
-		f_write(&myFile, &Tekst2, sizeof(Tekst2), &testByte);
+		f_write(&myFile, &Data, strlen(Data), &testByte);
+		f_write(&myFile, &Tekst1, strlen(Tekst1), &testByte);
+		f_write(&myFile, &Tekst2, strlen(Tekst2), &testByte);
 		uint8_t h = sTime.Hours;
 		char DataH[2];
 		itoa(h, DataH, 10);
-		f_write(&myFile, &DataH, sizeof(DataH), &testByte);
-		f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
+		f_write(&myFile, &DataH, strlen(DataH), &testByte);
+		f_write(&myFile, &Tekst4, strlen(Tekst4), &testByte);
 		uint8_t m = sTime.Minutes;
 		char DataM[2];
 		itoa(m, DataM, 10);
-		f_write(&myFile, &DataM, sizeof(DataM), &testByte);
-		f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
+		f_write(&myFile, &DataM, strlen(DataM), &testByte);
+		f_write(&myFile, &Tekst4, strlen(Tekst4), &testByte);
 		uint8_t s = sTime.Seconds;
 		char DataS[2];
 		itoa(s, DataS, 10);
-		f_write(&myFile, &DataS, sizeof(DataS), &testByte);
-		f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
-		f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
+		f_write(&myFile, &DataS, strlen(DataS), &testByte);
+		f_write(&myFile, &Tekst3, strlen(Tekst3), &testByte);
+		f_write(&myFile, &Tekst3, strlen(Tekst3), &testByte);
 
 		f_close(&myFile);
 		ToggleRGB('R', 0);
 	}
 }
 
-void SaveRS(char FileName[], uint8_t RS, uint8_t Sensor)
+void SaveRS(char FileName[], uint8_t RS, uint8_t Sensor, uint8_t Terminal)
 {
-	char Tekst2[] = "Tijd:";
+	char Tekst2[] = "Tijd:\t";
 	char Tekst3[] = "\r\n";
 	char Tekst4[] = ":";
 	char Tekst_Temp0[] = "PT12:\r\n";
 	char Tekst_Hum0[] = "OMC-160-3:\r\n";
+	uint8_t x = 0;
+	uint8_t t = 0;
+
+	HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+	HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
 
 	ToggleRGB('G', 1);
 
-	EmptyBuffer();
-	ReadRS(RS, 2, 350);
-	if(rxData[0] == 36)
-	{
-		for(int x = 1; x <= 39; x++)
-		{
-			if(rxData[x] == 36)
-			{
-				for(int y = x; y <= 39; y++)
-				{
-					rxData[y] = 0;
-				}
-				WriteRS(1, rxData);
-				break;
-			}
-		}
-	}
-	else
+	x = sTime.SubSeconds;
+	do
 	{
 		EmptyBuffer();
+		HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
+		HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+		ReadRS(RS, 2, 350);
+		if(sTime.SubSeconds > x)
+		{
+			t = sTime.SubSeconds - x;
+		}
+		else if(sTime.SubSeconds < x)
+		{
+			t = (sTime.SubSeconds + 255) - x;
+		}
+	}while(rxData[0] != 36 && t < 150);
+
+	for(int x = 1; x <= 39; x++)
+	{
+		if(rxData[x] == 36)
+		{
+			for(int y = x; y <= 39; y++)
+			{
+				rxData[y] = 0;
+			}
+			break;
+		}
+	}
+
+	if(rxData[0] != 36)
+	{
+		EmptyBuffer();
+	}
+
+	if(Terminal == 1)
+	{
+		WriteRS(1, rxData);
 	}
 
 	HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
@@ -872,45 +928,45 @@ void SaveRS(char FileName[], uint8_t RS, uint8_t Sensor)
 		if(Sensor == 1)
 		{
 			f_open(&myFile, FileName_Measure, FA_WRITE | FA_OPEN_APPEND);
-			f_write(&myFile, &Tekst_Temp0, sizeof(Tekst_Temp0), &testByte);
+			f_write(&myFile, &Tekst_Temp0, strlen(Tekst_Temp0), &testByte);
 			f_close(&myFile);
 		}
 		else if (Sensor == 2)
 		{
 			f_open(&myFile, FileName_Measure, FA_WRITE | FA_OPEN_APPEND);
-			f_write(&myFile, &Tekst_Hum0, sizeof(Tekst_Hum0), &testByte);
+			f_write(&myFile, &Tekst_Hum0, strlen(Tekst_Hum0), &testByte);
 			f_close(&myFile);
 		}
 		//Import meusurement in SD card
 		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 
-		f_write(&myFile, &rxData, sizeof(rxData), &testByte);
-		f_write(&myFile, &Tekst2, sizeof(Tekst2), &testByte);
+		f_write(&myFile, &rxData, strlen(rxData), &testByte);
+		f_write(&myFile, &Tekst2, strlen(Tekst2), &testByte);
 		uint8_t h = sTime.Hours;
 		char DataH[2];
 		itoa(h, DataH, 10);
-		f_write(&myFile, &DataH, sizeof(DataH), &testByte);
-		f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
+		f_write(&myFile, &DataH, strlen(DataH), &testByte);
+		f_write(&myFile, &Tekst4, strlen(Tekst4), &testByte);
 		uint8_t m = sTime.Minutes;
 		char DataM[2];
 		itoa(m, DataM, 10);
-		f_write(&myFile, &DataM, sizeof(DataM), &testByte);
-		f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
+		f_write(&myFile, &DataM, strlen(DataM), &testByte);
+		f_write(&myFile, &Tekst4, strlen(Tekst4), &testByte);
 		uint8_t s = sTime.Seconds;
 		char DataS[2];
 		itoa(s, DataS, 10);
-		f_write(&myFile, &DataS, sizeof(DataS), &testByte);
-		f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
-		f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
+		f_write(&myFile, &DataS, strlen(DataS), &testByte);
+		f_write(&myFile, &Tekst3, strlen(Tekst3), &testByte);
+		f_write(&myFile, &Tekst3, strlen(Tekst3), &testByte);
 
 		f_close(&myFile);
 		ToggleRGB('R', 0);
 	}
 }
 
-void SaveSDi(char FileName[], uint8_t Sensor)
+void SaveSDi(char FileName[], uint8_t Sensor, uint8_t Terminal)
 {
-	char Tekst2[] = "Tijd:";
+	char Tekst2[] = "Tijd:\t";
 	char Tekst3[] = "\r\n";
 	char Tekst4[] = ":";
 	char Tekst_Temp0[] = "PT12:\r\n";
@@ -922,7 +978,7 @@ void SaveSDi(char FileName[], uint8_t Sensor)
 
 	HAL_LIN_SendBreak(&huart1);
 	HAL_Delay(20);
-	WriteSDi("0M1!", 200);
+	WriteSDi("0M1!", 100);
 
 	GPIOB -> ODR &= ~GPIO_PIN_10;
 
@@ -941,46 +997,51 @@ void SaveSDi(char FileName[], uint8_t Sensor)
 	EmptyBuffer();
 	ReadSDi(300);
 
+	if(Terminal == 1)
+	{
+		WriteRS(1, rxData);
+	}
+
 	HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
 	HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
 
 	ToggleRGB('G', 0);
 
-	if(f_mount(&myFATFS, SDPath, 1) == FR_OK)
+	if(f_mount(&myFATFS, SDPath, 1) == FR_OK && rxData[0] == '0')
 	{
 		ToggleRGB('R', 1);
 		if(Sensor == 1)
 		{
 			f_open(&myFile, FileName_Measure, FA_WRITE | FA_OPEN_APPEND);
-			f_write(&myFile, &Tekst_Temp0, sizeof(Tekst_Temp0), &testByte);
+			f_write(&myFile, &Tekst_Temp0, strlen(Tekst_Temp0), &testByte);
 			f_close(&myFile);
 		}
 		else if(Sensor == 2)
 		{
 			f_open(&myFile, FileName_Measure, FA_WRITE | FA_OPEN_APPEND);
-			f_write(&myFile, &Tekst_Hum0, sizeof(Tekst_Hum0), &testByte);
+			f_write(&myFile, &Tekst_Hum0, strlen(Tekst_Hum0), &testByte);
 			f_close(&myFile);
 		}
 		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 
-		f_write(&myFile, &rxData, sizeof(rxData), &testByte);
-		f_write(&myFile, &Tekst2, sizeof(Tekst2), &testByte);
+		f_write(&myFile, &rxData, strlen(rxData), &testByte);
+		f_write(&myFile, &Tekst2, strlen(Tekst2), &testByte);
 		uint8_t h = sTime.Hours;
 		char DataH[2];
 		itoa(h, DataH, 10);
-		f_write(&myFile, &DataH, sizeof(DataH), &testByte);
-		f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
+		f_write(&myFile, &DataH, strlen(DataH), &testByte);
+		f_write(&myFile, &Tekst4, strlen(Tekst4), &testByte);
 		uint8_t m = sTime.Minutes;
 		char DataM[2];
 		itoa(m, DataM, 10);
-		f_write(&myFile, &DataM, sizeof(DataM), &testByte);
-		f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
+		f_write(&myFile, &DataM, strlen(DataM), &testByte);
+		f_write(&myFile, &Tekst4, strlen(Tekst4), &testByte);
 		uint8_t s = sTime.Seconds;
 		char DataS[2];
 		itoa(s, DataS, 10);
-		f_write(&myFile, &DataS, sizeof(DataS), &testByte);
-		f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
-		f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
+		f_write(&myFile, &DataS, strlen(DataS), &testByte);
+		f_write(&myFile, &Tekst3, strlen(Tekst3), &testByte);
+		f_write(&myFile, &Tekst3, strlen(Tekst3), &testByte);
 
 		f_close(&myFile);
 		ToggleRGB('R', 0);
@@ -1024,21 +1085,21 @@ void ReadRS(uint8_t RS, uint8_t port, uint16_t TimeOut)
 	if(port == 2)
 	{
 		GPIOA -> ODR |= GPIO_PIN_4;
-		if(RS == 1)
+		if(RS == 0) //RS-232
 		{
 			GPIOA -> ODR &= ~GPIO_PIN_5;
 			GPIOA -> ODR &= ~GPIO_PIN_6;
 			GPIOA -> ODR &= ~GPIO_PIN_7;
 			HAL_UART_Receive(&huart2, (uint8_t *)rxData, sizeof(rxData), TimeOut);
 		}
-		else if(RS == 2)
+		else if(RS == 1) //RS-422
 		{
 			GPIOA -> ODR |= GPIO_PIN_5;
 			GPIOA -> ODR &= ~GPIO_PIN_6;
 			GPIOA -> ODR &= ~GPIO_PIN_7;
 			HAL_UART_Receive(&huart2, (uint8_t *)rxData, sizeof(rxData), TimeOut);
 		}
-		else if(RS == 3)
+		else if(RS == 2) //RS-485
 		{
 			GPIOA -> ODR |= GPIO_PIN_5;
 			GPIOA -> ODR |= GPIO_PIN_6;
@@ -1116,6 +1177,11 @@ void SetTime(void)
 	char TimerHour[2] = {0, 0};
 	char TimerMin[2] = {0, 0};
 	char TimerSec[2] = {0, 0};
+
+	sDate.Date = 7;
+	sDate.Month = RTC_MONTH_JANUARY;
+	sDate.WeekDay = RTC_WEEKDAY_TUESDAY;
+	sDate.Year = 20;
 
 	//Uren instellen
 	WriteRS(1, "Uur:\t");
