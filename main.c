@@ -130,8 +130,8 @@ int main(void)
 	uint8_t Save_Five = 0;//Open/Closed Power switch poort 2 optie
 	uint8_t Save_Six = 0;//Open/Closed Relay poort 1 optie
 	uint8_t Save_Seven = 0;//Open/Closed Relay poort 2 optie
-	uint8_t Save_Eight = 0;
-	uint8_t Display = 0;
+	uint8_t Save_Eight = 0;//Sleep mode optie
+	uint8_t Display = 0;//
 	uint8_t Relay = 0;
 	/* USER CODE END 1 */
 
@@ -210,8 +210,11 @@ int main(void)
 		switch(rxData[0])
 		{
 		case 8:
-			MM = 0;
-			Display = 0;
+			if(Opt_Menu >= 1)
+			{
+				MM = 0;
+				Display = 0;
+			}
 			break;
 		case '1':
 			if(Opt_Menu == 0)
@@ -420,6 +423,13 @@ int main(void)
 			}
 			WriteRS(1, Sleep_Mode[Save_Eight]);
 			WriteRS(1, "\r\n");
+			WriteRS(1, "7) Interne Meetgegevens:");
+			if(Save_Nine >= 5)
+			{
+				Save_Nine = 0;
+			}
+			WriteRS(1, Poort_Switch[Save_Nine]);
+			WriteRS(1, "\r\n");
 			MM = 1;
 		}
 		if(Sp == 1) // Seriele poort optie menu
@@ -525,6 +535,7 @@ int main(void)
 		}
 		else if(Sp == 5)
 		{
+			Opt_Menu = 5;
 			WriteRS(1, "\x1b[1J"); //Clear screen
 			WriteRS(1, "\x1b[f"); //Move cursor to upper left corner
 			WriteRS(1, "Druk Backspace om terug te gaan naar het hoofd menu\r\n");
@@ -593,7 +604,10 @@ int main(void)
 
 		if(Timer == 1 && Timer2 == 0) //Internal meusurement
 		{
-			MeasureLogInternal(Display);
+			if(Save_Nine == 1)
+			{
+				MeasureLogInternal(Display);
+			}
 			Timer2 = 1;
 		}
 		else if(Timer == 2)//external meusurement
