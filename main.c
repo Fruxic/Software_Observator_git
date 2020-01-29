@@ -216,7 +216,7 @@ int main(void)
 				Display = 0;
 			}
 			break;
-		case '1':
+		case '1': // Toets 1 opties in het menu
 			if(Opt_Menu == 0)
 			{
 				Sp = 1;
