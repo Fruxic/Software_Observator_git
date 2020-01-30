@@ -1016,13 +1016,11 @@ void SaveRS(char FileName[], uint8_t RS, uint8_t Sensor, uint8_t Terminal)
 		{
 			f_open(&myFile, FileName_Measure, FA_WRITE | FA_OPEN_APPEND);
 			f_write(&myFile, &Tekst_Temp0, strlen(Tekst_Temp0), &testByte);
-			f_close(&myFile);
 		}
 		else if (Sensor == 2)
 		{
 			f_open(&myFile, FileName_Measure, FA_WRITE | FA_OPEN_APPEND);
 			f_write(&myFile, &Tekst_Hum0, strlen(Tekst_Hum0), &testByte);
-			f_close(&myFile);
 		}
 		//Import meusurement in SD card
 		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
@@ -1101,13 +1099,11 @@ void SaveSDi(char FileName[], uint8_t Sensor, uint8_t Terminal)
 		{
 			f_open(&myFile, FileName_Measure, FA_WRITE | FA_OPEN_APPEND);
 			f_write(&myFile, &Tekst_Temp0, strlen(Tekst_Temp0), &testByte);
-			f_close(&myFile);
 		}
 		else if(Sensor == 2)
 		{
 			f_open(&myFile, FileName_Measure, FA_WRITE | FA_OPEN_APPEND);
 			f_write(&myFile, &Tekst_Hum0, strlen(Tekst_Hum0), &testByte);
-			f_close(&myFile);
 		}
 		f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 
