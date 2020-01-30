@@ -131,6 +131,7 @@ int main(void)
 	uint8_t Save_Six = 0;//Open/Closed Relay poort 1 optie
 	uint8_t Save_Seven = 0;//Open/Closed Relay poort 2 optie
 	uint8_t Save_Eight = 0;//Sleep mode optie
+	uint8_t Save_Nine = 0;
 	uint8_t Display = 0;//
 	uint8_t Relay = 0;
 	/* USER CODE END 1 */
@@ -179,6 +180,7 @@ int main(void)
 	Save_Six = Flash_Read(0x08060050);
 	Save_Seven = Flash_Read(0x08060060);
 	Save_Eight = Flash_Read(0x08060070);
+	Save_Nine = Flash_Read(0x08060080);
 
 	HAL_PWR_EnableBkUpAccess();
 	sTime.Seconds = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR0);
@@ -238,6 +240,7 @@ int main(void)
 				Flash_Write(0x08060050, Save_Six);
 				Flash_Write(0x08060060, Save_Seven);
 				Flash_Write(0x08060070, Save_Eight);
+				Flash_Write(0x08060080, Save_Nine);
 			}
 			else if(Opt_Menu == 2)
 			{
@@ -256,6 +259,7 @@ int main(void)
 				Flash_Write(0x08060050, Save_Six);
 				Flash_Write(0x08060060, Save_Seven);
 				Flash_Write(0x08060070, Save_Eight);
+				Flash_Write(0x08060080, Save_Nine);
 			}
 			break;
 		case '2':
@@ -280,6 +284,7 @@ int main(void)
 				Flash_Write(0x08060050, Save_Six);
 				Flash_Write(0x08060060, Save_Seven);
 				Flash_Write(0x08060070, Save_Eight);
+				Flash_Write(0x08060080, Save_Nine);
 			}
 			else if(Opt_Menu == 2)
 			{
@@ -298,6 +303,7 @@ int main(void)
 				Flash_Write(0x08060050, Save_Six);
 				Flash_Write(0x08060060, Save_Seven);
 				Flash_Write(0x08060070, Save_Eight);
+				Flash_Write(0x08060080, Save_Nine);
 			}
 			break;
 		case '3':
@@ -323,6 +329,7 @@ int main(void)
 				Flash_Write(0x08060050, Save_Six);
 				Flash_Write(0x08060060, Save_Seven);
 				Flash_Write(0x08060070, Save_Eight);
+				Flash_Write(0x08060080, Save_Nine);
 			}
 			break;
 		case '4':
@@ -347,6 +354,7 @@ int main(void)
 				Flash_Write(0x08060050, Save_Six);
 				Flash_Write(0x08060060, Save_Seven);
 				Flash_Write(0x08060070, Save_Eight);
+				Flash_Write(0x08060080, Save_Nine);
 			}
 			else if(Opt_Menu == 2)
 			{
@@ -366,6 +374,7 @@ int main(void)
 				Flash_Write(0x08060050, Save_Six);
 				Flash_Write(0x08060060, Save_Seven);
 				Flash_Write(0x08060070, Save_Eight);
+				Flash_Write(0x08060080, Save_Nine);
 			}
 			break;
 		case '5':
@@ -393,6 +402,28 @@ int main(void)
 				Flash_Write(0x08060050, Save_Six);
 				Flash_Write(0x08060060, Save_Seven);
 				Flash_Write(0x08060070, Save_Eight);
+				Flash_Write(0x08060080, Save_Nine);
+			}
+			break;
+		case'7':
+			if(Opt_Menu == 0)
+			{
+				MM = 0;
+				Save_Nine++;
+				if(Save_Nine >= 2)
+				{
+					Save_Nine = 0;
+				}
+				Flash_Erase_SectorSeven();
+				Flash_Write(0x08060020, Save_Three);
+				Flash_Write(0x08060010, Save_Two);
+				Flash_Write(0x08060030, Save_Four);
+				Flash_Write(0x08060000, Save_One);
+				Flash_Write(0x08060040, Save_Five);
+				Flash_Write(0x08060050, Save_Six);
+				Flash_Write(0x08060060, Save_Seven);
+				Flash_Write(0x08060070, Save_Eight);
+				Flash_Write(0x08060080, Save_Nine);
 			}
 			break;
 		}
@@ -428,7 +459,7 @@ int main(void)
 			{
 				Save_Nine = 0;
 			}
-			WriteRS(1, Poort_Switch[Save_Nine]);
+			WriteRS(1, Sleep_Mode[Save_Nine]);
 			WriteRS(1, "\r\n");
 			MM = 1;
 		}
