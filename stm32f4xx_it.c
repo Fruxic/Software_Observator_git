@@ -277,50 +277,23 @@ void EXTI1_IRQHandler(void)
 						GPIOC -> ODR &= ~GPIO_PIN_9;
 						f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 						f_write(&myFile, &Tekst, sizeof(Tekst), &testByte);
-						f_close(&myFile);
-
-						f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 						f_write(&myFile, &DataH, sizeof(DataH), &testByte);
-						f_close(&myFile);
-
-						f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 						f_write(&myFile, &Tekst1, sizeof(Tekst1), &testByte);
-						f_close(&myFile);
-
-						f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 						f_write(&myFile, &Tekst2, sizeof(Tekst2), &testByte);
-						f_close(&myFile);
-
 						uint8_t h = sTime.Hours;
 						char DataHours[2];
 						itoa(h, DataHours, 10);
-						f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 						f_write(&myFile, &DataHours, sizeof(DataHours), &testByte);
-						f_close(&myFile);
-
-						f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 						f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
-						f_close(&myFile);
-
 						uint8_t m = sTime.Minutes;
 						char DataM[2];
 						itoa(m, DataM, 10);
-						f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 						f_write(&myFile, &DataM, sizeof(DataM), &testByte);
-						f_close(&myFile);
-
-						f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 						f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
-						f_close(&myFile);
-
 						uint8_t s = sTime.Seconds;
 						char DataS[2];
 						itoa(s, DataS, 10);
-						f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 						f_write(&myFile, &DataS, sizeof(DataS), &testByte);
-						f_close(&myFile);
-
-						f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 						f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
 						f_close(&myFile);
 						GPIOC -> ODR |= GPIO_PIN_9;
@@ -410,50 +383,23 @@ void EXTI2_IRQHandler(void)
 					{
 						f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 						f_write(&myFile, &Tekst, sizeof(Tekst), &testByte);
-						f_close(&myFile);
-
-						f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 						f_write(&myFile, &DataH, sizeof(DataH), &testByte);
-						f_close(&myFile);
-
-						f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 						f_write(&myFile, &Tekst1, sizeof(Tekst1), &testByte);
-						f_close(&myFile);
-
-						f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 						f_write(&myFile, &Tekst2, sizeof(Tekst2), &testByte);
-						f_close(&myFile);
-
 						uint8_t h = sTime.Hours;
 						char DataHours[2];
 						itoa(h, DataHours, 10);
-						f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 						f_write(&myFile, &DataHours, sizeof(DataHours), &testByte);
-						f_close(&myFile);
-
-						f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 						f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
-						f_close(&myFile);
-
 						uint8_t m = sTime.Minutes;
 						char DataM[2];
 						itoa(m, DataM, 10);
-						f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 						f_write(&myFile, &DataM, sizeof(DataM), &testByte);
-						f_close(&myFile);
-
-						f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 						f_write(&myFile, &Tekst3, sizeof(Tekst3), &testByte);
-						f_close(&myFile);
-
 						uint8_t s = sTime.Seconds;
 						char DataS[2];
 						itoa(s, DataS, 10);
-						f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 						f_write(&myFile, &DataS, sizeof(DataS), &testByte);
-						f_close(&myFile);
-
-						f_open(&myFile, FileName, FA_WRITE | FA_OPEN_APPEND);
 						f_write(&myFile, &Tekst4, sizeof(Tekst4), &testByte);
 						f_close(&myFile);
 					}
